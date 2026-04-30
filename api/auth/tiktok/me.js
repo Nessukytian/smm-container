@@ -28,8 +28,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Только поля, которые отдаются по user.info.basic (без username — оно требует user.info.profile)
     const resp = await fetch(
-      'https://open.tiktokapis.com/v2/user/info/?fields=open_id,union_id,avatar_url,display_name,username',
+      'https://open.tiktokapis.com/v2/user/info/?fields=open_id,union_id,avatar_url,display_name',
       {
         method: 'GET',
         headers: {
