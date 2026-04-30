@@ -16,6 +16,9 @@ export default function handler(req, res) {
   const state = randomString(24);
   setCookie(res, 'tt_state', state, { maxAge: 600 });
 
+  // Никаких кешей, OAuth-старт всегда свежий.
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
+
   const scope = 'user.info.basic,video.upload';
 
   const url = new URL('https://www.tiktok.com/v2/auth/authorize/');
