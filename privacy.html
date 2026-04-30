@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Privacy Policy — Studio</title>
+<style>
+  :root{--bg:#0a0a0f;--surface:#1a1a25;--text:#f5f5f7;--text-2:#a8a8b3;--accent:#a78bfa;--border:rgba(255,255,255,0.08)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,Inter,Segoe UI,Roboto,sans-serif;line-height:1.6;font-size:16px}
+  .wrap{max-width:760px;margin:0 auto;padding:48px 24px 80px}
+  .back{display:inline-flex;align-items:center;gap:8px;color:var(--text-2);text-decoration:none;font-size:14px;margin-bottom:32px}
+  .back:hover{color:var(--accent)}
+  h1{font-size:32px;letter-spacing:-0.02em;margin:0 0 8px}
+  .meta{color:var(--text-2);font-size:14px;margin-bottom:32px}
+  h2{font-size:20px;margin:32px 0 12px;letter-spacing:-0.01em}
+  p,li{color:#d1d1d8}
+  a{color:var(--accent)}
+  ul{padding-left:22px}
+  li{margin-bottom:6px}
+  .note{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin:24px 0;color:var(--text-2);font-size:14px}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--text-2);font-weight:600;background:var(--surface)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">← К приложению</a>
+  <h1>Privacy Policy</h1>
+  <div class="meta">Last updated: April 30, 2026</div>
+
+  <p>This Privacy Policy describes how Studio (the "Service") collects, uses, stores, and discloses information when you use the application. The Service is a self-hosted personal tool operated by an individual ("Owner").</p>
+
+  <h2>1. Information We Collect</h2>
+  <p>The Service collects only the information needed to operate its intended features:</p>
+
+  <table>
+    <tr><th>Category</th><th>Examples</th><th>Purpose</th></tr>
+    <tr><td>Content data</td><td>Video files, thumbnails, descriptions, hashtags, ideas, references</td><td>To plan and publish content to selected platforms</td></tr>
+    <tr><td>Authentication tokens</td><td>OAuth access &amp; refresh tokens for connected platforms</td><td>To publish on your behalf via the platforms' official APIs</td></tr>
+    <tr><td>Account metadata</td><td>Connected account usernames, IDs</td><td>To display which accounts are linked</td></tr>
+    <tr><td>Analytics data</td><td>Aggregated views, likes, comments returned by platform APIs</td><td>To display performance dashboards</td></tr>
+    <tr><td>Technical logs</td><td>API request timestamps, error messages</td><td>Debugging and reliability</td></tr>
+  </table>
+
+  <p>The Service does <b>not</b> collect: location, contacts, browsing history outside the app, biometric data, or payment information.</p>
+
+  <h2>2. How We Use Information</h2>
+  <ul>
+    <li>To allow you to publish your videos to platforms you have authorized</li>
+    <li>To present aggregated analytics returned by those platforms</li>
+    <li>To generate AI-assisted descriptions via the Anthropic API when you request</li>
+    <li>To maintain the security and reliability of the Service</li>
+  </ul>
+  <p>We do not sell, rent, or trade your personal information. We do not use your content to train any machine learning model.</p>
+
+  <h2>3. Where Your Data Is Stored</h2>
+  <p>Data is stored in the following infrastructure, which the Owner controls:</p>
+  <ul>
+    <li><b>Supabase</b> (hosted PostgreSQL database) — ideas, post metadata, OAuth tokens, analytics snapshots</li>
+    <li><b>Cloudflare R2</b> (object storage) — uploaded video files and thumbnails</li>
+    <li><b>Vercel</b> — application hosting and serverless functions</li>
+    <li><b>Browser local storage</b> — for offline drafts on your own device</li>
+  </ul>
+  <p>OAuth access tokens are stored encrypted at rest. Tokens are used only to call the official APIs of the platforms you have connected.</p>
+
+  <h2>4. Third-Party Services</h2>
+  <p>When you connect a third-party account, your interactions with that platform are governed by that platform's privacy policy:</p>
+  <ul>
+    <li>YouTube / Google: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></li>
+    <li>Meta (Facebook, Instagram): <a href="https://www.facebook.com/privacy/policy" target="_blank" rel="noopener">facebook.com/privacy/policy</a></li>
+    <li>TikTok: <a href="https://www.tiktok.com/legal/privacy-policy" target="_blank" rel="noopener">tiktok.com/legal/privacy-policy</a></li>
+    <li>Telegram: <a href="https://telegram.org/privacy" target="_blank" rel="noopener">telegram.org/privacy</a></li>
+    <li>VK: <a href="https://vk.com/privacy" target="_blank" rel="noopener">vk.com/privacy</a></li>
+    <li>Anthropic: <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">anthropic.com/legal/privacy</a></li>
+  </ul>
+
+  <h2>5. Data Retention</h2>
+  <p>Content data and analytics are retained as long as you use the Service. OAuth tokens are retained until you disconnect the corresponding platform from the Settings page or revoke access in that platform's settings. You may delete all of your data at any time using the "Reset all data" option in Settings.</p>
+
+  <h2>6. Your Rights</h2>
+  <p>Depending on where you live, you may have the right to:</p>
+  <ul>
+    <li>Access the personal data the Service holds about you</li>
+    <li>Correct inaccurate data</li>
+    <li>Delete your data</li>
+    <li>Withdraw consent and disconnect linked accounts</li>
+    <li>Object to or restrict certain processing</li>
+  </ul>
+  <p>To exercise any of these rights, contact the email at the bottom of this page. Because the Service is a personal tool with a single operator, requests are typically handled within seven (7) days.</p>
+
+  <h2>7. Children's Privacy</h2>
+  <p>The Service is not directed to anyone under the age of 13 (or the equivalent minimum age in your jurisdiction). The Owner does not knowingly collect personal data from children.</p>
+
+  <h2>8. Security</h2>
+  <p>The Service uses HTTPS, encrypted token storage, and least-privilege scopes when requesting platform permissions. However, no method of electronic storage or transmission is 100% secure. Use the Service at your own risk.</p>
+
+  <h2>9. Changes to This Policy</h2>
+  <p>This Privacy Policy may be updated. Material changes will be reflected by the "Last updated" date above. Continued use after changes indicates acceptance.</p>
+
+  <h2>10. Contact</h2>
+  <p>For privacy questions or requests, contact: <a href="mailto:wittyvisionary@yahoo.com">wittyvisionary@yahoo.com</a>.</p>
+
+  <div class="note">
+    Studio is a personal, self-hosted tool. The Owner is the sole intended user. There is no marketing, advertising, or third-party data sharing of any kind.
+  </div>
+</div>
+</body>
+</html>
