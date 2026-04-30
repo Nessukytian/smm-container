@@ -1,0 +1,21 @@
+{
+  "name": "Studio — твой контент-хаб",
+  "short_name": "Studio",
+  "description": "Планировщик идей, мульти-публикация и аналитика для контент-мейкера",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "lang": "ru",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
