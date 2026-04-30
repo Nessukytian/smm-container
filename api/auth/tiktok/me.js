@@ -5,9 +5,23 @@ import { parseCookies, clearCookie } from '../../_lib/cookies.js';
 export default async function handler(req, res) {
   const cookies = parseCookies(req);
   const token = cookies.tt_access_token;
+  const grantedScope = cookies.tt_scope || null;
+  const openId = cookies.tt_open_id || null;
 
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Content-Type', 'application/json');
+
+  // Debug mode: return what we have without calling the API
+  if (req.query?.debug === '1') {
+    return res.end(
+      JSON.stringify({
+        has_access_token: !!token,
+        access_token_length: token ? token.length : 0,
+        granted_scope: grantedScope,
+        open_id: openId,
+      }, null, 2)
+    );
+  }
 
   if (!token) {
     return res.end(JSON.stringify({ connected: false }));
