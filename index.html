@@ -449,27 +449,27 @@
     <div class="banner" id="publish-banner">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       <div>
-        <b>TikTok работает по-настоящему</b> (sandbox-режим — пишет в твои Drafts). Остальные платформы пока в демо.
+        <b>TikTok работает по-настоящему</b> — видео уходит в твои уведомления TikTok, оттуда жмёшь «Опубликовать» или «Сохранить в драфты». Остальные платформы пока в демо.
       </div>
     </div>
 
     <div class="card">
       <div class="field">
         <label class="label">Видео</label>
-        <label class="upload" id="upload-area">
-          <input type="file" id="video-file" accept="video/*" hidden>
+        <div class="upload" id="upload-area">
+          <input type="file" id="video-file" accept="video/*" style="position:absolute;left:-9999px;opacity:0">
           <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           <div id="upload-text">Нажми, чтобы выбрать видео</div>
-          <div style="font-size:12px;color:var(--text-3);margin-top:4px" id="upload-sub">MP4, MOV до 4 МБ (тест)</div>
-        </label>
+          <div style="font-size:12px;color:var(--text-3);margin-top:4px" id="upload-sub">MP4, MOV до 3 МБ (для теста)</div>
+        </div>
       </div>
 
       <div class="field">
         <label class="label">Обложĸа (необязательно)</label>
-        <label class="upload" id="cover-area" style="padding:18px">
-          <input type="file" id="cover-file" accept="image/*" hidden>
+        <div class="upload" id="cover-area" style="padding:18px">
+          <input type="file" id="cover-file" accept="image/*" style="position:absolute;left:-9999px;opacity:0">
           <div id="cover-text" style="font-size:13px">📷 Выбрать обложĸу</div>
-        </label>
+        </div>
       </div>
 
       <div class="field">
@@ -1045,8 +1045,8 @@ async function submitPublish(){
       navigate('settings'); return;
     }
     if (!file){ toast('Для TikTok нужен видеофайл'); return; }
-    if (file.size > 4 * 1024 * 1024){
-      toast('Видео > 4МБ — Vercel free не пропустит. Сделай ĸороче.');
+    if (file.size > 3 * 1024 * 1024){
+      toast('Видео > 3МБ — Vercel free не пропустит из-за base64 inflation. Сделай короче.', {long:true});
       return;
     }
     toast('⏳ Загружаю в TikTok...');
@@ -1059,10 +1059,10 @@ async function submitPublish(){
       });
       const data = await resp.json();
       if (data.ok){
-        toast('✅ Видео в драфтах TikTok. Открой приложение.');
+        toast('✅ Видео в TikTok → Уведомления. Дальше Опубликовать/Сохранить.', {long:true});
       } else {
         const errMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
-        toast('TikTok: ' + errMsg.slice(0, 80));
+        toast('TikTok: ' + errMsg.slice(0, 120), {long:true});
         console.error('TikTok publish error', data);
         return; // не очищаем форму — пусть попробует ещё раз
       }
@@ -1082,7 +1082,7 @@ async function submitPublish(){
     document.getElementById('post-hashtags').value='';
     document.getElementById('upload-area').classList.remove('has-file');
     document.getElementById('upload-text').textContent='Нажми, чтобы выбрать видео';
-    document.getElementById('upload-sub').textContent='MP4, MOV до 4 МБ (тест)';
+    document.getElementById('upload-sub').textContent='MP4, MOV до 3 МБ (для теста)';
     document.getElementById('cover-area').classList.remove('has-file');
     document.getElementById('cover-text').textContent='📷 Выбрать обложĸу';
     fileInput.value = '';
@@ -1132,13 +1132,20 @@ function renderTopVideos(){
 
 // ============ TOAST ============
 let toastTimer;
-function toast(msg){
+function toast(msg, opts){
+  opts = opts || {};
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+  const duration = opts.long ? 6000 : 2400;
+  toastTimer = setTimeout(()=>t.classList.remove('show'), duration);
 }
+// Тап по тосту — заĸрыть мгновенно
+document.getElementById('toast').addEventListener('click', () => {
+  document.getElementById('toast').classList.remove('show');
+  clearTimeout(toastTimer);
+});
 
 // ============ INIT ============
 renderFilters();
