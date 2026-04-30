@@ -129,7 +129,7 @@ export default async function handler(req, res) {
       ok: true,
       publish_id: publishId,
       filename: filename || 'video.mp4',
-      message: 'Видео отправлено в драфты TikTok. Открой приложение TikTok → Профиль → Drafts.',
+      message: 'Видео отправлено в TikTok → Уведомления. Открой приложение TikTok → Inbox/Уведомления и нажми Опубликовать или Сохранить в драфты.',
     })
   );
 }
