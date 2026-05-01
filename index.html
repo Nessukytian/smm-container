@@ -1502,9 +1502,11 @@ async function submitPublish(){
   if (STATE.selectedPlatforms.size === 0){ toast('Выбери хотя бы одну платформу'); return; }
   const wantsTiktok = STATE.selectedPlatforms.has('tiktok');
   const wantsYoutube = STATE.selectedPlatforms.has('youtube');
+  const wantsInstagram = STATE.selectedPlatforms.has('instagram');
+  const wantsFacebook = STATE.selectedPlatforms.has('facebook');
   const fileInput = document.getElementById('video-file');
   const file = fileInput.files && fileInput.files[0];
-  const realPublish = wantsTiktok || wantsYoutube;
+  const realPublish = wantsTiktok || wantsYoutube || wantsInstagram || wantsFacebook;
 
   // Validation
   if (realPublish){
@@ -1515,6 +1517,12 @@ async function submitPublish(){
     }
     if (wantsYoutube && !(STATE.platforms[STATE.profile]||{}).youtube){
       toast('Сначала подключи YouTube в Профиле', {long:true}); navigate('profile'); return;
+    }
+    if (wantsInstagram && !(STATE.platforms[STATE.profile]||{}).instagram){
+      toast('Сначала подключи Instagram через Meta в Профиле', {long:true}); navigate('profile'); return;
+    }
+    if (wantsFacebook && !(STATE.platforms[STATE.profile]||{}).facebook){
+      toast('Сначала подключи Facebook через Meta в Профиле', {long:true}); navigate('profile'); return;
     }
   }
 
@@ -1558,12 +1566,40 @@ async function submitPublish(){
           .catch(e => ({platform:'youtube', ok:false, error: e.message||String(e)}))
       );
     }
+    if (wantsInstagram || wantsFacebook){
+      const metaTargets = [];
+      if (wantsInstagram) metaTargets.push('instagram');
+      if (wantsFacebook) metaTargets.push('facebook');
+      const igDesc = STATE.perPlatformDescriptions['instagram'] || STATE.perPlatformDescriptions['facebook'] || desc;
+      tasks.push(
+        fetch('/api/publish/meta', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            video_base64: b64,
+            filename: file.name,
+            caption: igDesc,
+            targets: metaTargets,
+          }),
+        }).then(r => r.json()).then(d => ({platform:'meta', ...d}))
+          .catch(e => ({platform:'meta', ok:false, error: e.message||String(e)}))
+      );
+    }
     const results = await Promise.all(tasks);
     const successes = results.filter(r => r.ok);
     const failures = results.filter(r => !r.ok);
 
     if (successes.length === results.length){
-      const msgs = successes.map(r => r.platform === 'youtube' ? '✅ YouTube — Private (открой Studio)' : '✅ TikTok → Уведомления').join(' · ');
+      const msgs = successes.map(r => {
+        if (r.platform === 'youtube') return '✅ YouTube — Private (открой Studio)';
+        if (r.platform === 'tiktok') return '✅ TikTok → Уведомления';
+        if (r.platform === 'meta') {
+          const parts = [];
+          if (r.results?.instagram?.ok) parts.push('Instagram');
+          if (r.results?.facebook?.ok) parts.push('Facebook');
+          return '✅ ' + parts.join(' + ');
+        }
+        return '✅ ' + r.platform;
+      }).join(' · ');
       toast(msgs, {long:true});
     } else if (successes.length > 0){
       const okNames = successes.map(r => r.platform).join(', ');
