@@ -333,12 +333,31 @@ img, svg, video { display: block; max-width: 100%; }
   display: grid; gap: var(--sp-3);
 }
 .idea-card {
+  position: relative;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   overflow: hidden;
   transition: transform .12s var(--ease), border-color .15s var(--ease), box-shadow .15s var(--ease);
 }
+.idea-delete {
+  position: absolute; top: 10px; right: 10px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.92);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  color: var(--text-2);
+  display: inline-flex; align-items: center; justify-content: center;
+  z-index: 2;
+  opacity: 0.7;
+  transition: opacity .15s var(--ease), background .15s var(--ease), color .15s var(--ease);
+}
+.idea-delete:hover {
+  opacity: 1;
+  background: var(--white);
+  color: var(--error);
+}
+.idea-delete:active { transform: scale(.92); }
 .idea-card:hover { border-color: var(--border-strong); box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
 .idea-card:active { transform: scale(.99); }
 .idea-img {
@@ -814,9 +833,15 @@ img, svg, video { display: block; max-width: 100%; }
 
   <!-- ============ IDEAS PAGE ============ -->
   <main class="page active" id="page-ideas">
-    <div class="page-head">
-      <h1 class="page-title">Идеи</h1>
-      <p class="page-sub" id="ideas-sub">Все идеи в активном профиле.</p>
+    <div class="page-head" style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+      <div style="min-width:0">
+        <h1 class="page-title">Идеи</h1>
+        <p class="page-sub" id="ideas-sub">Все идеи в активном профиле.</p>
+      </div>
+      <button class="btn" data-size="sm" onclick="openIdeaSheet()" style="flex-shrink:0">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Идея
+      </button>
     </div>
     <div id="ideas-list" class="idea-list"></div>
   </main>
@@ -844,9 +869,9 @@ img, svg, video { display: block; max-width: 100%; }
       <div class="drop" id="drop-video" onclick="document.getElementById('video-file').click()">
         <input type="file" id="video-file" accept="video/*">
         <div class="drop-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
         </div>
-        <div class="drop-title" id="drop-video-title">Нажми, чтобы выбрать видео</div>
+        <div class="drop-title" id="drop-video-title">Выбрать видео</div>
         <div class="drop-hint" id="drop-video-hint">MP4, MOV — до 3 МБ для теста</div>
       </div>
     </div>
@@ -996,9 +1021,6 @@ img, svg, video { display: block; max-width: 100%; }
 
     <p style="text-align:center;color:var(--text-3);font-size:11px;margin:32px 0 0;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.08em">Studio v0.2</p>
   </main>
-
-  <!-- ============ FAB ============ -->
-  <button class="fab" id="fab" onclick="openIdeaSheet()" aria-label="Добавить идею">+</button>
 
   <!-- ============ BOTTOM NAV ============ -->
   <nav class="bottom-nav">
@@ -1161,7 +1183,6 @@ function navigate(page){
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.dataset.active = (b.dataset.page === page) ? 'true' : 'false');
-  document.getElementById('fab').style.display = (page === 'ideas') ? 'inline-flex' : 'none';
   window.scrollTo(0, 0);
 }
 
@@ -1189,6 +1210,9 @@ function renderIdeas(){
     if (i.link){ try { host = new URL(i.link).hostname.replace('www.',''); } catch(e){ host = i.link.slice(0,30); } }
     return `
       <div class="idea-card">
+        <button class="idea-delete" onclick="deleteIdea('${i.id}', event)" aria-label="Удалить идею">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+        </button>
         ${i.image ? `<img class="idea-img" src="${i.image}" alt="">` : ''}
         <div class="idea-body">
           <div class="idea-tag" data-profile="${i.profile}">${i.profile === 'creative' ? 'Креативный' : 'Личный'}</div>
@@ -1202,6 +1226,18 @@ function renderIdeas(){
         </div>
       </div>`;
   }).join('');
+}
+
+function deleteIdea(id, event){
+  if (event) event.stopPropagation();
+  const idea = STATE.ideas.find(i => i.id === id);
+  if (!idea) return;
+  if (!confirm(`Удалить идею «${idea.title}»?`)) return;
+  STATE.ideas = STATE.ideas.filter(i => i.id !== id);
+  save('ideas', STATE.ideas);
+  renderIdeas();
+  renderIdeaPicker();
+  toast('Идея удалена');
 }
 
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
@@ -1447,40 +1483,84 @@ document.getElementById('cover-file').addEventListener('change', e => {
 
 async function submitPublish(){
   const desc = document.getElementById('post-description').value.trim();
-  // save current tab into per-platform map
   if (STATE.activeDescTab) STATE.perPlatformDescriptions[STATE.activeDescTab] = desc;
 
   if (STATE.selectedPlatforms.size === 0){ toast('Выбери хотя бы одну платформу'); return; }
   const wantsTiktok = STATE.selectedPlatforms.has('tiktok');
+  const wantsYoutube = STATE.selectedPlatforms.has('youtube');
   const fileInput = document.getElementById('video-file');
   const file = fileInput.files && fileInput.files[0];
+  const realPublish = wantsTiktok || wantsYoutube;
 
-  if (wantsTiktok){
-    const tt = STATE.platforms[STATE.profile] || {};
-    if (!tt.tiktok){ toast('Сначала подключи TikTok в Профиле', {long:true}); navigate('profile'); return; }
-    if (!file){ toast('Для TikTok нужен видеофайл'); return; }
+  // Validation
+  if (realPublish){
+    if (!file){ toast('Для реальной публикации нужен видеофайл'); return; }
     if (file.size > 3 * 1024 * 1024){ toast('Видео > 3МБ — Vercel free не пропустит', {long:true}); return; }
-    toast('⏳ Загружаю в TikTok...');
-    try {
-      const b64 = await fileToBase64(file);
-      const platDesc = STATE.perPlatformDescriptions['tiktok'] || desc;
-      const resp = await fetch('/api/publish/tiktok', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ video_base64: b64, filename: file.name, title: platDesc.slice(0, 150) }),
-      });
-      const data = await resp.json();
-      if (data.ok){
-        toast('✅ Видео в TikTok → Уведомления. Жми Опубликовать в TikTok.', {long:true});
-      } else {
-        const errMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
-        toast('TikTok: ' + errMsg.slice(0, 120), {long:true});
-        console.error('TikTok publish error', data);
-        return;
-      }
-    } catch(e){
-      toast('Ошибка сети: ' + (e.message||e));
-      return;
+    if (wantsTiktok && !(STATE.platforms[STATE.profile]||{}).tiktok){
+      toast('Сначала подключи TikTok в Профиле', {long:true}); navigate('profile'); return;
+    }
+    if (wantsYoutube && !(STATE.platforms[STATE.profile]||{}).youtube){
+      toast('Сначала подключи YouTube в Профиле', {long:true}); navigate('profile'); return;
+    }
+  }
+
+  if (realPublish){
+    const platLabels = [];
+    if (wantsTiktok) platLabels.push('TikTok');
+    if (wantsYoutube) platLabels.push('YouTube');
+    toast(`⏳ Загружаю в ${platLabels.join(' и ')}...`);
+
+    let b64;
+    try { b64 = await fileToBase64(file); } catch(e){
+      toast('Ошибка чтения файла: ' + (e.message||e)); return;
+    }
+
+    const tasks = [];
+    if (wantsTiktok){
+      const ttDesc = STATE.perPlatformDescriptions['tiktok'] || desc;
+      tasks.push(
+        fetch('/api/publish/tiktok', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ video_base64: b64, filename: file.name, title: ttDesc.slice(0,150) }),
+        }).then(r => r.json()).then(d => ({platform:'tiktok', ...d}))
+          .catch(e => ({platform:'tiktok', ok:false, error: e.message||String(e)}))
+      );
+    }
+    if (wantsYoutube){
+      const ytDesc = STATE.perPlatformDescriptions['youtube'] || desc;
+      const tags = (document.getElementById('post-hashtags').value||'')
+        .split(/[\s,]+/).map(t => t.replace(/^#/,'')).filter(Boolean).slice(0,30);
+      tasks.push(
+        fetch('/api/publish/youtube', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            video_base64: b64,
+            title: ytDesc.split('\n')[0].slice(0,100) || 'Untitled',
+            description: ytDesc,
+            privacy: 'private',
+            tags,
+          }),
+        }).then(r => r.json()).then(d => ({platform:'youtube', ...d}))
+          .catch(e => ({platform:'youtube', ok:false, error: e.message||String(e)}))
+      );
+    }
+    const results = await Promise.all(tasks);
+    const successes = results.filter(r => r.ok);
+    const failures = results.filter(r => !r.ok);
+
+    if (successes.length === results.length){
+      const msgs = successes.map(r => r.platform === 'youtube' ? '✅ YouTube — Private (открой Studio)' : '✅ TikTok → Уведомления').join(' · ');
+      toast(msgs, {long:true});
+    } else if (successes.length > 0){
+      const okNames = successes.map(r => r.platform).join(', ');
+      const errs = failures.map(r => `${r.platform}: ${typeof r.error === 'string' ? r.error : JSON.stringify(r.error)}`).join(' · ');
+      toast(`Часть прошла (${okNames}). Ошибки: ${errs.slice(0,140)}`, {long:true});
+      console.error('Partial publish failure', failures);
+    } else {
+      const errs = failures.map(r => `${r.platform}: ${typeof r.error === 'string' ? r.error : JSON.stringify(r.error)}`).join(' · ');
+      toast('Ошибки: ' + errs.slice(0,180), {long:true});
+      console.error('Publish failures', failures);
+      return; // не очищаем форму
     }
   } else {
     const names = [...STATE.selectedPlatforms].map(k => SAFE_PLATFORM(k).name).join(', ');
@@ -1520,6 +1600,7 @@ function renderPlatformsLists(){
       const connected = !!conn[k];
       let desc = connected ? 'Подключено' : 'Не подключено';
       if (k === 'tiktok' && connected && conn.tiktok_username) desc = '@' + conn.tiktok_username;
+      if (k === 'youtube' && connected && conn.youtube_title) desc = conn.youtube_title;
       return `<div class="row">
         <div class="row-info">
           <div class="row-icon">${PLATFORM_ICONS[k] || ''}</div>
@@ -1537,19 +1618,17 @@ function renderPlatformsLists(){
 }
 
 async function toggleConnect(profile, k){
-  // TikTok — реально через OAuth (пока общий токен на оба профиля до момента namespaced cookies)
+  // TikTok — реально через OAuth
   if (k === 'tiktok'){
     const conn = STATE.platforms[profile] || {};
     if (conn.tiktok){
       try { await fetch('/api/auth/tiktok/disconnect', {method:'POST'}); } catch(e){}
-      STATE.platforms[profile].tiktok = false;
-      STATE.platforms[profile].tiktok_username = null;
-      // Если другой профиль тоже считал TikTok подключённым — сбросим
-      const other = profile === 'creative' ? 'personal' : 'creative';
-      if (STATE.platforms[other]) {
-        STATE.platforms[other].tiktok = false;
-        STATE.platforms[other].tiktok_username = null;
-      }
+      ['creative','personal'].forEach(p => {
+        if (STATE.platforms[p]){
+          STATE.platforms[p].tiktok = false;
+          STATE.platforms[p].tiktok_username = null;
+        }
+      });
       save('platforms', STATE.platforms);
       renderPlatformsLists(); renderPlatformGrid();
       toast('TikTok отключён');
@@ -1557,6 +1636,27 @@ async function toggleConnect(profile, k){
       sessionStorage.setItem('returnProfile', profile);
       toast('Откроется TikTok для логина...');
       window.location.href = '/api/auth/tiktok/login';
+    }
+    return;
+  }
+  // YouTube — реально через OAuth
+  if (k === 'youtube'){
+    const conn = STATE.platforms[profile] || {};
+    if (conn.youtube){
+      try { await fetch('/api/auth/youtube/disconnect', {method:'POST'}); } catch(e){}
+      ['creative','personal'].forEach(p => {
+        if (STATE.platforms[p]){
+          STATE.platforms[p].youtube = false;
+          STATE.platforms[p].youtube_title = null;
+        }
+      });
+      save('platforms', STATE.platforms);
+      renderPlatformsLists(); renderPlatformGrid();
+      toast('YouTube отключён');
+    } else {
+      sessionStorage.setItem('returnProfile', profile);
+      toast('Откроется Google для логина...');
+      window.location.href = '/api/auth/youtube/login';
     }
     return;
   }
@@ -1574,12 +1674,30 @@ async function syncTiktokStatus(){
     const data = await r.json();
     const connected = !!data.connected;
     const username = data.username || data.display_name || null;
-    // На текущий момент один токен — отображаем во ВСЕХ профилях, где есть TikTok
     ['creative','personal'].forEach(p => {
       if (!STATE.platforms[p]) STATE.platforms[p] = {};
       if (PLATFORMS_BY_PROFILE[p].includes('tiktok')){
         STATE.platforms[p].tiktok = connected;
         STATE.platforms[p].tiktok_username = username;
+      }
+    });
+    save('platforms', STATE.platforms);
+    renderPlatformsLists();
+    renderPlatformGrid();
+  } catch(e){ /* offline / backend not deployed */ }
+}
+
+async function syncYoutubeStatus(){
+  try {
+    const r = await fetch('/api/auth/youtube/me', {cache:'no-store'});
+    const data = await r.json();
+    const connected = !!data.connected;
+    const title = data.title || null;
+    ['creative','personal'].forEach(p => {
+      if (!STATE.platforms[p]) STATE.platforms[p] = {};
+      if (PLATFORMS_BY_PROFILE[p].includes('youtube')){
+        STATE.platforms[p].youtube = connected;
+        STATE.platforms[p].youtube_title = title;
       }
     });
     save('platforms', STATE.platforms);
@@ -1599,6 +1717,17 @@ function handleOAuthReturn(){
   const err = params.get('tiktok_error');
   if (err){
     toast('TikTok: ' + err.slice(0, 120), {long:true});
+    history.replaceState({}, '', location.pathname);
+  }
+  if (params.get('youtube') === 'connected'){
+    toast('✅ YouTube подключён');
+    history.replaceState({}, '', location.pathname);
+    syncYoutubeStatus();
+    navigate('profile');
+  }
+  const ytErr = params.get('youtube_error');
+  if (ytErr){
+    toast('YouTube: ' + ytErr.slice(0, 120), {long:true});
     history.replaceState({}, '', location.pathname);
   }
 }
