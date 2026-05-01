@@ -986,7 +986,7 @@ img, svg, video { display: block; max-width: 100%; }
     <div class="profile-section-head" data-profile="creative">
       <span class="dot"></span>
       <h3>Креативный</h3>
-      <span class="profile-chip" data-profile="creative" style="margin-left:auto">YT · TT · IG</span>
+      <span class="profile-chip" data-profile="creative" style="margin-left:auto">YT · TT · IG · FB</span>
     </div>
     <div id="platforms-creative"></div>
 
@@ -1104,7 +1104,7 @@ img, svg, video { display: block; max-width: 100%; }
 
 /* ============ STATE ============ */
 const PLATFORMS_BY_PROFILE = {
-  creative: ['youtube', 'tiktok', 'instagram'],
+  creative: ['youtube', 'tiktok', 'instagram', 'facebook'],
   personal: ['instagram', 'tiktok'],
 };
 
@@ -1615,6 +1615,14 @@ function renderPlatformsLists(){
       let desc = connected ? 'Подключено' : 'Не подключено';
       if (k === 'tiktok' && connected && conn.tiktok_username) desc = '@' + conn.tiktok_username;
       if (k === 'youtube' && connected && conn.youtube_title) desc = conn.youtube_title;
+      if (k === 'instagram' && connected) {
+        const ig = (conn.meta_ig_accounts || [])[0];
+        desc = ig ? '@' + ig.username : 'Подключено через Meta';
+      }
+      if (k === 'facebook' && connected) {
+        const fp = (conn.meta_pages || [])[0];
+        desc = fp ? fp.name : 'Подключено через Meta';
+      }
       return `<div class="row">
         <div class="row-info">
           <div class="row-icon">${PLATFORM_ICONS[k] || ''}</div>
@@ -1674,6 +1682,30 @@ async function toggleConnect(profile, k){
     }
     return;
   }
+  // Meta (Instagram + Facebook) — оба через одну OAuth-ссылку
+  if (k === 'instagram' || k === 'facebook'){
+    const conn = STATE.platforms[profile] || {};
+    const isConnected = !!(conn.instagram || conn.facebook);
+    if (isConnected){
+      try { await fetch('/api/auth/meta/disconnect', {method:'POST'}); } catch(e){}
+      ['creative','personal'].forEach(p => {
+        if (STATE.platforms[p]){
+          STATE.platforms[p].instagram = false;
+          STATE.platforms[p].facebook = false;
+          STATE.platforms[p].meta_username = null;
+          STATE.platforms[p].meta_pages = [];
+          STATE.platforms[p].meta_ig_accounts = [];
+        }
+      });
+      save('platforms', STATE.platforms);
+      renderPlatformsLists(); renderPlatformGrid();
+      toast('Meta отключён (Instagram + Facebook)');
+    } else {
+      toast('Откроется Facebook для логина...');
+      window.location.href = '/api/auth/meta/login';
+    }
+    return;
+  }
   // Остальные платформы — пока демо-переключатель
   if (!STATE.platforms[profile]) STATE.platforms[profile] = {};
   STATE.platforms[profile][k] = !STATE.platforms[profile][k];
@@ -1720,6 +1752,33 @@ async function syncYoutubeStatus(){
   } catch(e){ /* offline / backend not deployed */ }
 }
 
+async function syncMetaStatus(){
+  try {
+    const r = await fetch('/api/auth/meta/me', {cache:'no-store'});
+    const data = await r.json();
+    const connected = !!data.connected;
+    const name = data.name || null;
+    const pages = data.pages || [];
+    const igAccounts = data.ig_accounts || [];
+    ['creative','personal'].forEach(p => {
+      if (!STATE.platforms[p]) STATE.platforms[p] = {};
+      const profileNeeds = PLATFORMS_BY_PROFILE[p];
+      if (profileNeeds.includes('instagram')){
+        STATE.platforms[p].instagram = connected && igAccounts.length > 0;
+      }
+      if (profileNeeds.includes('facebook')){
+        STATE.platforms[p].facebook = connected && pages.length > 0;
+      }
+      STATE.platforms[p].meta_username = name;
+      STATE.platforms[p].meta_pages = pages;
+      STATE.platforms[p].meta_ig_accounts = igAccounts;
+    });
+    save('platforms', STATE.platforms);
+    renderPlatformsLists();
+    renderPlatformGrid();
+  } catch(e){ /* offline / backend not deployed */ }
+}
+
 function handleOAuthReturn(){
   const params = new URLSearchParams(location.search);
   if (params.get('tiktok') === 'connected'){
@@ -1742,6 +1801,17 @@ function handleOAuthReturn(){
   const ytErr = params.get('youtube_error');
   if (ytErr){
     toast('YouTube: ' + ytErr.slice(0, 120), {long:true});
+    history.replaceState({}, '', location.pathname);
+  }
+  if (params.get('meta') === 'connected'){
+    toast('✅ Meta подключён (Instagram + Facebook)');
+    history.replaceState({}, '', location.pathname);
+    syncMetaStatus();
+    navigate('profile');
+  }
+  const metaErr = params.get('meta_error');
+  if (metaErr){
+    toast('Meta: ' + metaErr.slice(0, 120), {long:true});
     history.replaceState({}, '', location.pathname);
   }
 }
@@ -1788,6 +1858,8 @@ renderIdeaPicker();
 setPublishMode(STATE.publishMode);
 handleOAuthReturn();
 syncTiktokStatus();
+syncYoutubeStatus();
+syncMetaStatus();
 
 document.getElementById('ideas-sub').textContent = (STATE.profile === 'creative') ? 'Креативный профиль — публикуешь на YT, TT, IG.' : 'Личный профиль — IG, TT.';
 
