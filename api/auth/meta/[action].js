@@ -28,6 +28,7 @@ function doLogin(req, res) {
   setCookie(res, 'meta_state', state, { maxAge: 600 });
   res.setHeader('Cache-Control', 'no-store, max-age=0');
 
+  // Полный набор для Instagram + Facebook Pages publishing.
   const scope = [
     'pages_show_list',
     'pages_read_engagement',
