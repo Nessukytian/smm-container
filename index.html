@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="Studio" />
 <link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
+<link rel="apple-touch-icon" href="icon.svg" />
 <link rel="preconnect" href="https://rsms.me/" />
 <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
 <title>Studio</title>
@@ -638,16 +640,25 @@ img, svg, video { display: block; max-width: 100%; }
 .toast {
   position: fixed;
   bottom: calc(var(--bottom-h) + var(--safe-bottom) + 16px);
-  left: 50%; transform: translateX(-50%) translateY(120%);
+  left: 50%; transform: translateX(-50%) translateY(16px);
   background: var(--black); color: var(--white);
   padding: 12px 18px;
   border-radius: var(--r-pill);
   font-size: 14px; font-weight: 500; letter-spacing: -0.005em;
   z-index: 200; max-width: calc(100% - 40px);
   box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-  transition: transform .3s var(--ease);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .25s var(--ease), transform .25s var(--ease), visibility 0s linear .25s;
 }
-.toast[data-show="true"] { transform: translateX(-50%) translateY(0); }
+.toast[data-show="true"] {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity .25s var(--ease), transform .25s var(--ease), visibility 0s linear 0s;
+}
 
 /* ===== HELPERS ===== */
 .divider { height: 1px; background: var(--border); margin: var(--sp-6) 0; }
@@ -975,7 +986,7 @@ img, svg, video { display: block; max-width: 100%; }
     <div class="profile-section-head" data-profile="creative">
       <span class="dot"></span>
       <h3>Креативный</h3>
-      <span class="profile-chip" data-profile="creative" style="margin-left:auto">YT · TT · IG · RED</span>
+      <span class="profile-chip" data-profile="creative" style="margin-left:auto">YT · TT · IG</span>
     </div>
     <div id="platforms-creative"></div>
 
@@ -1030,7 +1041,7 @@ img, svg, video { display: block; max-width: 100%; }
         Идеи
       </button>
       <button class="nav-btn" data-page="publish" data-active="false" onclick="navigate('publish')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         Загрузить
       </button>
       <button class="nav-btn" data-page="stats" data-active="false" onclick="navigate('stats')">
@@ -1093,7 +1104,7 @@ img, svg, video { display: block; max-width: 100%; }
 
 /* ============ STATE ============ */
 const PLATFORMS_BY_PROFILE = {
-  creative: ['youtube', 'tiktok', 'instagram', 'rednote'],
+  creative: ['youtube', 'tiktok', 'instagram'],
   personal: ['instagram', 'tiktok'],
 };
 
@@ -1175,7 +1186,7 @@ function setProfile(p){
   renderPlatformsLists();
   renderIdeaPicker();
   renderDescTabs();
-  document.getElementById('ideas-sub').textContent = (p === 'creative') ? 'Креативный профиль — публикуешь на YT, TT, IG, RedNote.' : 'Личный профиль — IG, TT.';
+  document.getElementById('ideas-sub').textContent = (p === 'creative') ? 'Креативный профиль — публикуешь на YT, TT, IG.' : 'Личный профиль — IG, TT.';
 }
 
 /* ============ NAVIGATION ============ */
@@ -1183,6 +1194,9 @@ function navigate(page){
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.dataset.active = (b.dataset.page === page) ? 'true' : 'false');
+  // На странице Профиль профиль-свитчер не нужен — там оба профиля показаны вместе
+  const switcher = document.querySelector('.profile-switch');
+  if (switcher) switcher.style.display = (page === 'profile') ? 'none' : 'inline-flex';
   window.scrollTo(0, 0);
 }
 
@@ -1775,7 +1789,7 @@ setPublishMode(STATE.publishMode);
 handleOAuthReturn();
 syncTiktokStatus();
 
-document.getElementById('ideas-sub').textContent = (STATE.profile === 'creative') ? 'Креативный профиль — публикуешь на YT, TT, IG, RedNote.' : 'Личный профиль — IG, TT.';
+document.getElementById('ideas-sub').textContent = (STATE.profile === 'creative') ? 'Креативный профиль — публикуешь на YT, TT, IG.' : 'Личный профиль — IG, TT.';
 
 /* PWA SW */
 if ('serviceWorker' in navigator) {
