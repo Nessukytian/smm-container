@@ -109,6 +109,45 @@ async function doMe(req, res) {
 
   if (!token) return res.end(JSON.stringify({ connected: false }));
 
+  // DEBUG MODE — returns raw FB API responses to diagnose Pages access issues
+  if (req.query?.debug === '1') {
+    const out = { token_length: token.length };
+    try {
+      // 1. Check what permissions/scopes the token has
+      const debugUrl = new URL(`https://graph.facebook.com/${META_VERSION}/debug_token`);
+      debugUrl.searchParams.set('input_token', token);
+      debugUrl.searchParams.set('access_token',
+        process.env.META_APP_ID + '|' + process.env.META_APP_SECRET);
+      const dr = await fetch(debugUrl.toString());
+      out.debug_token = await dr.json();
+    } catch (e) { out.debug_token_error = e.message; }
+    try {
+      // 2. /me with all useful fields
+      const meUrl = new URL(`https://graph.facebook.com/${META_VERSION}/me`);
+      meUrl.searchParams.set('fields', 'id,name,email');
+      meUrl.searchParams.set('access_token', token);
+      const r = await fetch(meUrl.toString());
+      out.me = await r.json();
+    } catch (e) { out.me_error = e.message; }
+    try {
+      // 3. /me/accounts (Pages list) — the critical query
+      const pagesUrl = new URL(`https://graph.facebook.com/${META_VERSION}/me/accounts`);
+      pagesUrl.searchParams.set('fields',
+        'id,name,access_token,instagram_business_account{id,username,name}');
+      pagesUrl.searchParams.set('access_token', token);
+      const r = await fetch(pagesUrl.toString());
+      out.me_accounts = await r.json();
+    } catch (e) { out.me_accounts_error = e.message; }
+    try {
+      // 4. Permissions granted to the token
+      const permUrl = new URL(`https://graph.facebook.com/${META_VERSION}/me/permissions`);
+      permUrl.searchParams.set('access_token', token);
+      const r = await fetch(permUrl.toString());
+      out.permissions = await r.json();
+    } catch (e) { out.permissions_error = e.message; }
+    return res.end(JSON.stringify(out, null, 2));
+  }
+
   try {
     const meUrl = new URL(`https://graph.facebook.com/${META_VERSION}/me`);
     meUrl.searchParams.set('fields', 'name');
