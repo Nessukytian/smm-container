@@ -1,4 +1,5 @@
 import { parseCookies } from '../_lib/cookies.js';
+import { getUserId, getToken } from '../_lib/sb.js';
 
 // Publish a video to the user's TikTok DRAFTS via the Content Posting API.
 // Frontend sends JSON: { video_base64, filename, title? }
@@ -22,7 +23,14 @@ export default async function handler(req, res) {
   }
 
   const cookies = parseCookies(req);
-  const token = cookies.tt_access_token;
+  let token = cookies.tt_access_token;
+  if (!token) {
+    const userId = await getUserId(req);
+    if (userId) {
+      const dbToken = await getToken(userId, 'tiktok');
+      if (dbToken) token = dbToken.access_token;
+    }
+  }
   if (!token) {
     res.statusCode = 401;
     return res.end(JSON.stringify({ ok: false, error: 'not connected to TikTok' }));

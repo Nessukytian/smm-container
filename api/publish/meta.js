@@ -1,5 +1,6 @@
 import { parseCookies } from '../_lib/cookies.js';
 import { getAccessiblePages } from '../_lib/meta-pages.js';
+import { getUserId, getToken } from '../_lib/sb.js';
 import { put } from '@vercel/blob';
 
 // Publish a video to Instagram and/or Facebook Pages via Meta Graph API.
@@ -28,7 +29,14 @@ export default async function handler(req, res) {
   }
 
   const cookies = parseCookies(req);
-  const userToken = cookies.meta_access_token;
+  let userToken = cookies.meta_access_token;
+  if (!userToken) {
+    const uid = await getUserId(req);
+    if (uid) {
+      const dbToken = await getToken(uid, 'meta');
+      if (dbToken) userToken = dbToken.access_token;
+    }
+  }
   if (!userToken) {
     res.statusCode = 401;
     return res.end(JSON.stringify({ ok: false, error: 'not connected to Meta' }));

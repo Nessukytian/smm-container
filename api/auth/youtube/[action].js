@@ -1,5 +1,6 @@
 // Single dynamic-route handler for /api/auth/youtube/{login|callback|me|disconnect}.
 import { parseCookies, setCookie, clearCookie } from '../../_lib/cookies.js';
+import { getUserId, saveToken, getToken, deleteToken } from '../../_lib/sb.js';
 
 const REDIRECT_URI =
   process.env.YOUTUBE_REDIRECT_URI ||
@@ -89,15 +90,40 @@ async function doCallback(req, res) {
   if (tokens.refresh_token) setCookie(res, 'yt_refresh_token', tokens.refresh_token, { maxAge: refreshMaxAge });
   if (tokens.scope) setCookie(res, 'yt_scope', tokens.scope, { maxAge: refreshMaxAge });
 
+  // Persist in DB if user is signed in
+  const userId = await getUserId(req);
+  if (userId) {
+    await saveToken(userId, 'youtube', {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_at: tokens.expires_in
+        ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
+        : null,
+      metadata: { scope: tokens.scope },
+    });
+  }
+
   redirectHome(res, { youtube: 'connected' });
 }
 
 async function doMe(req, res) {
   const cookies = parseCookies(req);
-  const token = cookies.yt_access_token;
+  let token = cookies.yt_access_token;
 
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-store');
+
+  // Cross-device fallback: pull from DB
+  if (!token) {
+    const userId = await getUserId(req);
+    if (userId) {
+      const dbToken = await getToken(userId, 'youtube');
+      if (dbToken) {
+        token = dbToken.access_token;
+        setCookie(res, 'yt_access_token', token, { maxAge: 3600 });
+      }
+    }
+  }
 
   if (!token) return res.end(JSON.stringify({ connected: false }));
 
@@ -131,10 +157,12 @@ async function doMe(req, res) {
   }
 }
 
-function doDisconnect(req, res) {
+async function doDisconnect(req, res) {
   clearCookie(res, 'yt_access_token');
   clearCookie(res, 'yt_refresh_token');
   clearCookie(res, 'yt_scope');
+  const userId = await getUserId(req);
+  if (userId) await deleteToken(userId, 'youtube');
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ ok: true }));
 }

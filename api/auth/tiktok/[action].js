@@ -2,6 +2,7 @@
 // Vercel Hobby plan limits us to 12 serverless functions; consolidating cuts 4→1.
 
 import { parseCookies, setCookie, clearCookie } from '../../_lib/cookies.js';
+import { getUserId, saveToken, getToken, deleteToken } from '../../_lib/sb.js';
 
 const REDIRECT_URI =
   process.env.TIKTOK_REDIRECT_URI ||
@@ -84,14 +85,43 @@ async function doCallback(req, res) {
   if (tokens.open_id) setCookie(res, 'tt_open_id', tokens.open_id, { maxAge: refreshMaxAge });
   if (tokens.scope) setCookie(res, 'tt_scope', tokens.scope, { maxAge: refreshMaxAge });
 
+  // Also persist in DB if user is signed in to Supabase (cross-device)
+  const userId = await getUserId(req);
+  if (userId) {
+    await saveToken(userId, 'tiktok', {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_at: tokens.expires_in
+        ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
+        : null,
+      metadata: { open_id: tokens.open_id, scope: tokens.scope },
+    });
+  }
+
   redirectHome(res, { tiktok: 'connected' });
 }
 
 async function doMe(req, res) {
   const cookies = parseCookies(req);
-  const token = cookies.tt_access_token;
-  const grantedScope = cookies.tt_scope || null;
-  const openId = cookies.tt_open_id || null;
+  let token = cookies.tt_access_token;
+  let grantedScope = cookies.tt_scope || null;
+  let openId = cookies.tt_open_id || null;
+
+  // Cross-device fallback: pull token from DB if cookies are empty
+  if (!token) {
+    const userId = await getUserId(req);
+    if (userId) {
+      const dbToken = await getToken(userId, 'tiktok');
+      if (dbToken) {
+        token = dbToken.access_token;
+        grantedScope = dbToken.metadata?.scope || grantedScope;
+        openId = dbToken.metadata?.open_id || openId;
+        // Restore cookie so subsequent requests are fast
+        setCookie(res, 'tt_access_token', token, { maxAge: 86400 });
+        if (openId) setCookie(res, 'tt_open_id', openId, { maxAge: 86400 });
+      }
+    }
+  }
 
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Content-Type', 'application/json');
@@ -135,11 +165,14 @@ async function doMe(req, res) {
   }
 }
 
-function doDisconnect(req, res) {
+async function doDisconnect(req, res) {
   clearCookie(res, 'tt_access_token');
   clearCookie(res, 'tt_refresh_token');
   clearCookie(res, 'tt_open_id');
   clearCookie(res, 'tt_scope');
+  // Also delete from DB
+  const userId = await getUserId(req);
+  if (userId) await deleteToken(userId, 'tiktok');
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ ok: true }));
 }

@@ -1,4 +1,5 @@
 import { parseCookies } from '../_lib/cookies.js';
+import { getUserId, getToken } from '../_lib/sb.js';
 
 // Upload a video to user's YouTube channel via Data API v3 (multipart upload).
 // Frontend sends JSON: { video_base64, title, description, privacy }
@@ -18,7 +19,14 @@ export default async function handler(req, res) {
   }
 
   const cookies = parseCookies(req);
-  const token = cookies.yt_access_token;
+  let token = cookies.yt_access_token;
+  if (!token) {
+    const userId = await getUserId(req);
+    if (userId) {
+      const dbToken = await getToken(userId, 'youtube');
+      if (dbToken) token = dbToken.access_token;
+    }
+  }
   if (!token) {
     res.statusCode = 401;
     return res.end(JSON.stringify({ ok: false, error: 'not connected to YouTube' }));

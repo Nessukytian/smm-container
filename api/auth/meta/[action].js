@@ -1,6 +1,7 @@
 // Single dynamic-route handler for /api/auth/meta/{login|callback|me|disconnect}.
 import { parseCookies, setCookie, clearCookie } from '../../_lib/cookies.js';
 import { getAccessiblePages } from '../../_lib/meta-pages.js';
+import { getUserId, saveToken, getToken, deleteToken } from '../../_lib/sb.js';
 
 const META_VERSION = 'v21.0';
 const REDIRECT_URI =
@@ -98,15 +99,40 @@ async function doCallback(req, res) {
 
   setCookie(res, 'meta_access_token', accessToken, { maxAge: accessMaxAge });
 
+  // Persist in DB if user is signed in
+  const userId = await getUserId(req);
+  if (userId) {
+    await saveToken(userId, 'meta', {
+      access_token: accessToken,
+      refresh_token: null,
+      expires_at: longLived.expires_in
+        ? new Date(Date.now() + longLived.expires_in * 1000).toISOString()
+        : null,
+      metadata: {},
+    });
+  }
+
   redirectHome(res, { meta: 'connected' });
 }
 
 async function doMe(req, res) {
   const cookies = parseCookies(req);
-  const token = cookies.meta_access_token;
+  let token = cookies.meta_access_token;
 
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-store');
+
+  // Cross-device fallback: pull from DB
+  if (!token) {
+    const userId = await getUserId(req);
+    if (userId) {
+      const dbToken = await getToken(userId, 'meta');
+      if (dbToken) {
+        token = dbToken.access_token;
+        setCookie(res, 'meta_access_token', token, { maxAge: 60 * 60 * 24 * 30 });
+      }
+    }
+  }
 
   if (!token) return res.end(JSON.stringify({ connected: false }));
 
@@ -180,9 +206,11 @@ async function doMe(req, res) {
   }
 }
 
-function doDisconnect(req, res) {
+async function doDisconnect(req, res) {
   clearCookie(res, 'meta_access_token');
   clearCookie(res, 'meta_state');
+  const userId = await getUserId(req);
+  if (userId) await deleteToken(userId, 'meta');
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ ok: true }));
 }
