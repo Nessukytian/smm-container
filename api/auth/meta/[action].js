@@ -1,5 +1,6 @@
 // Single dynamic-route handler for /api/auth/meta/{login|callback|me|disconnect}.
 import { parseCookies, setCookie, clearCookie } from '../../_lib/cookies.js';
+import { getAccessiblePages } from '../../_lib/meta-pages.js';
 
 const META_VERSION = 'v21.0';
 const REDIRECT_URI =
@@ -163,24 +164,9 @@ async function doMe(req, res) {
       return res.end(JSON.stringify({ connected: false, error: me.error.message || me.error }));
     }
 
-    const pagesUrl = new URL(`https://graph.facebook.com/${META_VERSION}/me/accounts`);
-    pagesUrl.searchParams.set('fields',
-      'name,id,access_token,instagram_business_account{id,username,name,profile_picture_url}');
-    pagesUrl.searchParams.set('access_token', token);
-    const pagesResp = await fetch(pagesUrl.toString());
-    const pagesData = await pagesResp.json();
-
-    const pages = (pagesData.data || []).map(p => ({
-      id: p.id,
-      name: p.name,
-      page_access_token: p.access_token,
-      instagram: p.instagram_business_account ? {
-        id: p.instagram_business_account.id,
-        username: p.instagram_business_account.username,
-        name: p.instagram_business_account.name,
-        avatar: p.instagram_business_account.profile_picture_url,
-      } : null,
-    }));
+    // Meta v21+ с granular scopes: /me/accounts может возвращать пусто.
+    // Берём page IDs из granular_scopes в debug_token и опрашиваем по одной.
+    const pages = await getAccessiblePages(token);
 
     return res.end(JSON.stringify({
       connected: true,
@@ -214,3 +200,4 @@ function randomString(len) {
   for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
   return out;
 }
+

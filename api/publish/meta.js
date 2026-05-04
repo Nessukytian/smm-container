@@ -1,4 +1,5 @@
 import { parseCookies } from '../_lib/cookies.js';
+import { getAccessiblePages } from '../_lib/meta-pages.js';
 import { put } from '@vercel/blob';
 
 // Publish a video to Instagram and/or Facebook Pages via Meta Graph API.
@@ -73,20 +74,15 @@ export default async function handler(req, res) {
 
   if (wantsIG || wantsFB) {
     try {
-      const url = new URL(`https://graph.facebook.com/${META_VERSION}/me/accounts`);
-      url.searchParams.set('fields', 'id,name,access_token,instagram_business_account{id}');
-      url.searchParams.set('access_token', userToken);
-      const r = await fetch(url.toString());
-      const data = await r.json();
-      const pages = data.data || [];
+      const pages = await getAccessiblePages(userToken);
       const targetPage = resolvedPageId
         ? pages.find(p => p.id === resolvedPageId)
-        : pages.find(p => (wantsIG ? !!p.instagram_business_account : true)) || pages[0];
+        : pages.find(p => (wantsIG ? !!p.instagram : true)) || pages[0];
       if (targetPage) {
         resolvedPageId = targetPage.id;
-        pageToken = targetPage.access_token || userToken;
-        if (targetPage.instagram_business_account) {
-          resolvedIgUserId = resolvedIgUserId || targetPage.instagram_business_account.id;
+        pageToken = targetPage.page_access_token || userToken;
+        if (targetPage.instagram) {
+          resolvedIgUserId = resolvedIgUserId || targetPage.instagram.id;
         }
       }
     } catch (e) { /* try anyway with user token */ }
@@ -166,6 +162,8 @@ export default async function handler(req, res) {
   if (wantsFB) {
     if (!resolvedPageId) {
       results.facebook = { ok: false, error: 'No Facebook Page found' };
+    } else if (!pageToken || pageToken === userToken) {
+      results.facebook = { ok: false, error: 'Page token недоступен — добавь pages_manage_posts в приложение Meta' };
     } else {
       try {
         const fbUrl = new URL(`https://graph.facebook.com/${META_VERSION}/${resolvedPageId}/videos`);
