@@ -22,21 +22,25 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ ok: false, error: 'POST only' }));
   }
 
+  const { video_base64, filename, profile: bodyProfile } = req.body || {};
+  const profile = ['creative', 'personal'].includes(bodyProfile) ? bodyProfile : 'creative';
+
   const cookies = parseCookies(req);
-  let token = cookies.tt_access_token;
+  // Profile-specific cookie first, fall back to legacy single-slot cookie for migrations.
+  let token = cookies[`tt_access_token_${profile}`] || cookies.tt_access_token;
   if (!token) {
     const userId = await getUserId(req);
     if (userId) {
-      const dbToken = await getToken(userId, 'tiktok');
+      const dbToken = (await getToken(userId, `tiktok_${profile}`))
+        || (await getToken(userId, 'tiktok'));
       if (dbToken) token = dbToken.access_token;
     }
   }
   if (!token) {
     res.statusCode = 401;
-    return res.end(JSON.stringify({ ok: false, error: 'not connected to TikTok' }));
+    return res.end(JSON.stringify({ ok: false, error: 'not connected to TikTok (' + profile + ')' }));
   }
 
-  const { video_base64, filename } = req.body || {};
   if (!video_base64) {
     res.statusCode = 400;
     return res.end(JSON.stringify({ ok: false, error: 'video_base64 missing' }));

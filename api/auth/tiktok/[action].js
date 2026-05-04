@@ -1,5 +1,6 @@
 // Single dynamic-route handler for /api/auth/tiktok/{login|callback|me|disconnect}.
-// Vercel Hobby plan limits us to 12 serverless functions; consolidating cuts 4→1.
+// Per-profile: ?profile=creative|personal — два независимых слота.
+// Cookies: tt_access_token_<profile>, DB: provider='tiktok_<profile>'.
 
 import { parseCookies, setCookie, clearCookie } from '../../_lib/cookies.js';
 import { getUserId, saveToken, getToken, deleteToken } from '../../_lib/sb.js';
@@ -7,6 +8,11 @@ import { getUserId, saveToken, getToken, deleteToken } from '../../_lib/sb.js';
 const REDIRECT_URI =
   process.env.TIKTOK_REDIRECT_URI ||
   'https://smm-container.vercel.app/api/auth/tiktok/callback';
+
+const PROFILES = ['creative', 'personal'];
+const cleanProfile = (p) => (PROFILES.includes(p) ? p : 'creative');
+const cookieKey = (kind, profile) => `tt_${kind}_${profile}`;
+const dbProvider = (profile) => `tiktok_${profile}`;
 
 export default async function handler(req, res) {
   const action = String(req.query.action || '').toLowerCase();
@@ -26,8 +32,11 @@ function doLogin(req, res) {
   const clientKey = process.env.TIKTOK_CLIENT_KEY;
   if (!clientKey) return res.status(500).send('TIKTOK_CLIENT_KEY env var is not set');
 
+  const profile = cleanProfile(req.query?.profile);
   const state = randomString(24);
+  // храним state и target-profile в cookies на 10 минут
   setCookie(res, 'tt_state', state, { maxAge: 600 });
+  setCookie(res, 'tt_login_profile', profile, { maxAge: 600 });
   res.setHeader('Cache-Control', 'no-store, max-age=0');
 
   const url = new URL('https://www.tiktok.com/v2/auth/authorize/');
@@ -49,7 +58,9 @@ async function doCallback(req, res) {
 
   const cookies = parseCookies(req);
   if (cookies.tt_state !== state) return redirectHome(res, { tiktok_error: 'state mismatch (csrf)' });
+  const profile = cleanProfile(cookies.tt_login_profile);
   clearCookie(res, 'tt_state');
+  clearCookie(res, 'tt_login_profile');
 
   const clientKey = process.env.TIKTOK_CLIENT_KEY;
   const clientSecret = process.env.TIKTOK_CLIENT_SECRET;
@@ -80,15 +91,15 @@ async function doCallback(req, res) {
   const accessMaxAge = Math.max(60, (tokens.expires_in || 86400) - 60);
   const refreshMaxAge = 60 * 60 * 24 * 365;
 
-  setCookie(res, 'tt_access_token', tokens.access_token, { maxAge: accessMaxAge });
-  if (tokens.refresh_token) setCookie(res, 'tt_refresh_token', tokens.refresh_token, { maxAge: refreshMaxAge });
-  if (tokens.open_id) setCookie(res, 'tt_open_id', tokens.open_id, { maxAge: refreshMaxAge });
-  if (tokens.scope) setCookie(res, 'tt_scope', tokens.scope, { maxAge: refreshMaxAge });
+  setCookie(res, cookieKey('access_token', profile), tokens.access_token, { maxAge: accessMaxAge });
+  if (tokens.refresh_token) setCookie(res, cookieKey('refresh_token', profile), tokens.refresh_token, { maxAge: refreshMaxAge });
+  if (tokens.open_id) setCookie(res, cookieKey('open_id', profile), tokens.open_id, { maxAge: refreshMaxAge });
+  if (tokens.scope) setCookie(res, cookieKey('scope', profile), tokens.scope, { maxAge: refreshMaxAge });
 
-  // Also persist in DB if user is signed in to Supabase (cross-device)
+  // Persist in DB if user is signed in to Supabase (cross-device)
   const userId = await getUserId(req);
   if (userId) {
-    await saveToken(userId, 'tiktok', {
+    await saveToken(userId, dbProvider(profile), {
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       expires_at: tokens.expires_in
@@ -98,83 +109,87 @@ async function doCallback(req, res) {
     });
   }
 
-  redirectHome(res, { tiktok: 'connected' });
+  redirectHome(res, { tiktok: 'connected', profile });
 }
 
-async function doMe(req, res) {
+// Достать токен для конкретного профиля (cookie → DB fallback).
+async function getProfileToken(req, res, profile) {
   const cookies = parseCookies(req);
-  let token = cookies.tt_access_token;
-  let grantedScope = cookies.tt_scope || null;
-  let openId = cookies.tt_open_id || null;
-
-  // Cross-device fallback: pull token from DB if cookies are empty
+  let token = cookies[cookieKey('access_token', profile)];
+  let scope = cookies[cookieKey('scope', profile)] || null;
+  let openId = cookies[cookieKey('open_id', profile)] || null;
   if (!token) {
     const userId = await getUserId(req);
     if (userId) {
-      const dbToken = await getToken(userId, 'tiktok');
+      const dbToken = await getToken(userId, dbProvider(profile));
       if (dbToken) {
         token = dbToken.access_token;
-        grantedScope = dbToken.metadata?.scope || grantedScope;
+        scope = dbToken.metadata?.scope || scope;
         openId = dbToken.metadata?.open_id || openId;
-        // Restore cookie so subsequent requests are fast
-        setCookie(res, 'tt_access_token', token, { maxAge: 86400 });
-        if (openId) setCookie(res, 'tt_open_id', openId, { maxAge: 86400 });
+        if (res) {
+          setCookie(res, cookieKey('access_token', profile), token, { maxAge: 86400 });
+          if (openId) setCookie(res, cookieKey('open_id', profile), openId, { maxAge: 86400 });
+        }
       }
     }
   }
+  return { token, scope, openId };
+}
 
+async function doMe(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Content-Type', 'application/json');
 
-  if (req.query?.debug === '1') {
-    return res.end(JSON.stringify({
-      has_access_token: !!token,
-      access_token_length: token ? token.length : 0,
-      granted_scope: grantedScope,
-      open_id: openId,
-    }, null, 2));
-  }
+  // Если ?profile= указан — отдать только его. Иначе — оба сразу.
+  const requested = req.query?.profile;
+  const profiles = requested ? [cleanProfile(requested)] : PROFILES;
 
-  if (!token) return res.end(JSON.stringify({ connected: false }));
-
-  try {
-    const resp = await fetch(
-      'https://open.tiktokapis.com/v2/user/info/?fields=open_id,union_id,avatar_url,display_name',
-      { method: 'GET', headers: { Authorization: `Bearer ${token}` } }
-    );
-    const data = await resp.json();
-
-    if (data?.error?.code && data.error.code !== 'ok') {
-      if (data.error.code === 'access_token_invalid' || data.error.code === 'token_expired') {
-        clearCookie(res, 'tt_access_token');
-        clearCookie(res, 'tt_open_id');
+  const out = {};
+  for (const profile of profiles) {
+    const { token, openId } = await getProfileToken(req, res, profile);
+    if (!token) { out[profile] = { connected: false }; continue; }
+    try {
+      const resp = await fetch(
+        'https://open.tiktokapis.com/v2/user/info/?fields=open_id,union_id,avatar_url,display_name',
+        { method: 'GET', headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await resp.json();
+      if (data?.error?.code && data.error.code !== 'ok') {
+        if (data.error.code === 'access_token_invalid' || data.error.code === 'token_expired') {
+          clearCookie(res, cookieKey('access_token', profile));
+          clearCookie(res, cookieKey('open_id', profile));
+        }
+        out[profile] = { connected: false, error: data.error.message || data.error.code };
+        continue;
       }
-      return res.end(JSON.stringify({ connected: false, error: data.error.message || data.error.code }));
+      const user = data?.data?.user || {};
+      out[profile] = {
+        connected: true,
+        open_id: user.open_id,
+        display_name: user.display_name,
+        username: user.username,
+        avatar_url: user.avatar_url,
+      };
+    } catch (e) {
+      out[profile] = { connected: false, error: 'network: ' + (e.message || e) };
     }
-
-    const user = data?.data?.user || {};
-    return res.end(JSON.stringify({
-      connected: true,
-      open_id: user.open_id,
-      display_name: user.display_name,
-      username: user.username,
-      avatar_url: user.avatar_url,
-    }));
-  } catch (e) {
-    return res.end(JSON.stringify({ connected: false, error: 'network: ' + (e.message || e) }));
   }
+
+  // Обратная совместимость: если был ?profile= — вернуть плоский объект (как было раньше).
+  if (requested) return res.end(JSON.stringify(out[cleanProfile(requested)]));
+  return res.end(JSON.stringify(out));
 }
 
 async function doDisconnect(req, res) {
-  clearCookie(res, 'tt_access_token');
-  clearCookie(res, 'tt_refresh_token');
-  clearCookie(res, 'tt_open_id');
-  clearCookie(res, 'tt_scope');
-  // Also delete from DB
+  const profile = cleanProfile(req.query?.profile);
+  clearCookie(res, cookieKey('access_token', profile));
+  clearCookie(res, cookieKey('refresh_token', profile));
+  clearCookie(res, cookieKey('open_id', profile));
+  clearCookie(res, cookieKey('scope', profile));
   const userId = await getUserId(req);
-  if (userId) await deleteToken(userId, 'tiktok');
+  if (userId) await deleteToken(userId, dbProvider(profile));
   res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify({ ok: true }));
+  res.end(JSON.stringify({ ok: true, profile }));
 }
 
 function redirectHome(res, params) {

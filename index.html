@@ -1192,10 +1192,11 @@ const PLATFORM_INFO = {
 
 const PLATFORM_ICONS = {
   youtube: `<svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="6" width="20" height="14" rx="3.5" fill="#ff0000"/><polygon points="10,10 10,17 16,13.5" fill="#fff"/></svg>`,
-  instagram: (() => {
-    const id = 'ig-grad-' + Math.random().toString(36).slice(2, 8);
-    return `<svg viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="${id}" cx="0.3" cy="1.05" r="1.2" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#fed576"/><stop offset="0.25" stop-color="#f47133"/><stop offset="0.5" stop-color="#bc3081"/><stop offset="0.78" stop-color="#4c63d2"/><stop offset="1" stop-color="#4c63d2"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#${id})"/><rect x="5.2" y="5.2" width="13.6" height="13.6" rx="4" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="17.1" cy="6.9" r="1.05" fill="#fff"/></svg>`;
-  })(),
+  // фабриĸа — ĸаждый вызов рендерит свежий SVG с униĸальным ID (избегаем дубля <defs>)
+  instagram: () => {
+    const id = 'igg-' + Math.random().toString(36).slice(2, 9);
+    return `<svg viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${id}" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#FED576"/><stop offset="0.26" stop-color="#F47133"/><stop offset="0.61" stop-color="#BC3081"/><stop offset="1" stop-color="#4C63D2"/></linearGradient></defs><rect width="24" height="24" rx="6" fill="url(#${id})"/><rect x="5.2" y="5.2" width="13.6" height="13.6" rx="4" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="12" cy="12" r="3.5" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="17.1" cy="6.9" r="1.05" fill="#fff"/></svg>`;
+  },
   tiktok: `<svg viewBox="0 0 24 24" width="22" height="22"><path fill="#000" d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43V8.91a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.84-.34z"/></svg>`,
   rednote: `<svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="10" fill="#ff2741"/><text x="12" y="16" text-anchor="middle" font-family="serif" font-size="13" font-weight="700" fill="#fff">红</text></svg>`,
   telegram: `<svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="10" fill="#0088cc"/><path d="M16.6 8.8l-1.5 7.4c-.1.5-.4.6-.8.4l-2.3-1.7-1.1 1c-.1.1-.2.2-.4.2l.2-2.4 4.3-3.9c.2-.2 0-.3-.3-.1l-5.3 3.3-2.3-.7c-.5-.2-.5-.5.1-.7l9-3.5c.4-.2.8.1.4.7z" fill="#fff"/></svg>`,
@@ -1204,6 +1205,13 @@ const PLATFORM_ICONS = {
 };
 
 const SAFE_PLATFORM = (p) => PLATFORM_INFO[p] || { name: p, short: p.slice(0,2).toUpperCase() };
+
+// PLATFORM_ICONS may be a string or a fabriqua-function (для иĸоноĸ с униĸальным id градиента).
+const iconFor = (k) => {
+  const v = PLATFORM_ICONS[k];
+  if (!v) return '';
+  return typeof v === 'function' ? v() : v;
+};
 
 const STATE = {
   profile: load('profile', 'creative'),     // 'creative' | 'personal'
@@ -1499,7 +1507,7 @@ function renderPlatformGrid(){
     return `<button class="platform-card" data-selected="${selected}" data-connected="${connected}" onclick="togglePlatform('${k}')">
       <span class="check">✓</span>
       <span class="dot"></span>
-      <span class="icon">${PLATFORM_ICONS[k] || ''}</span>
+      <span class="icon">${iconFor(k)}</span>
       <span>${info.name}</span>
     </button>`;
   }).join('');
@@ -1522,7 +1530,7 @@ function renderDescTabs(){
   el.innerHTML = list.map(k => {
     const info = SAFE_PLATFORM(k);
     return `<button class="desc-tab" data-active="${STATE.activeDescTab===k?'true':'false'}" onclick="switchDescTab('${k}')">
-      <span class="pill-ico">${PLATFORM_ICONS[k] || ''}</span>
+      <span class="pill-ico">${iconFor(k)}</span>
       ${info.name}
     </button>`;
   }).join('');
@@ -1649,7 +1657,11 @@ async function submitPublish(){
       tasks.push(
         fetch('/api/publish/tiktok', {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ video_base64: b64, filename: file.name, title: ttDesc.slice(0,150) }),
+          body: JSON.stringify({
+            video_base64: b64, filename: file.name,
+            title: ttDesc.slice(0,150),
+            profile: STATE.profile,
+          }),
         }).then(r => r.json()).then(d => ({platform:'tiktok', ...d}))
           .catch(e => ({platform:'tiktok', ok:false, error: e.message||String(e)}))
       );
@@ -1769,7 +1781,7 @@ function renderPlatformsLists(){
       }
       return `<div class="row">
         <div class="row-info">
-          <div class="row-icon">${PLATFORM_ICONS[k] || ''}</div>
+          <div class="row-icon">${iconFor(k)}</div>
           <div>
             <div class="row-name">${info.name}</div>
             <div class="row-desc">${desc}</div>
@@ -1784,24 +1796,23 @@ function renderPlatformsLists(){
 }
 
 async function toggleConnect(profile, k){
-  // TikTok — реально через OAuth
+  // TikTok — per-profile slot. Креативный и Личный — два разных аккаунта.
   if (k === 'tiktok'){
     const conn = STATE.platforms[profile] || {};
     if (conn.tiktok){
-      try { await fetch('/api/auth/tiktok/disconnect', {method:'POST'}); } catch(e){}
-      ['creative','personal'].forEach(p => {
-        if (STATE.platforms[p]){
-          STATE.platforms[p].tiktok = false;
-          STATE.platforms[p].tiktok_username = null;
-        }
-      });
+      try { await fetch('/api/auth/tiktok/disconnect?profile=' + profile, {method:'POST'}); } catch(e){}
+      if (STATE.platforms[profile]){
+        STATE.platforms[profile].tiktok = false;
+        STATE.platforms[profile].tiktok_username = null;
+      }
       save('platforms', STATE.platforms);
       renderPlatformsLists(); renderPlatformGrid();
-      toast('TikTok отключён');
+      toast('TikTok отключён (' + profile + ')');
     } else {
       sessionStorage.setItem('returnProfile', profile);
-      toast('Откроется TikTok для логина...');
-      window.location.href = '/api/auth/tiktok/login';
+      const label = profile === 'creative' ? 'Креативный' : 'Личный';
+      toast('Откроется TikTok для логина в ' + label + '...');
+      window.location.href = '/api/auth/tiktok/login?profile=' + profile;
     }
     return;
   }
@@ -1860,16 +1871,15 @@ async function toggleConnect(profile, k){
 
 async function syncTiktokStatus(){
   try {
+    // Бек отдаёт оба профиля сразу: { creative: {...}, personal: {...} }
     const r = await fetch('/api/auth/tiktok/me', {cache:'no-store'});
     const data = await r.json();
-    const connected = !!data.connected;
-    const username = data.username || data.display_name || null;
     ['creative','personal'].forEach(p => {
       if (!STATE.platforms[p]) STATE.platforms[p] = {};
-      if (PLATFORMS_BY_PROFILE[p].includes('tiktok')){
-        STATE.platforms[p].tiktok = connected;
-        STATE.platforms[p].tiktok_username = username;
-      }
+      if (!PLATFORMS_BY_PROFILE[p].includes('tiktok')) return;
+      const slot = data && data[p] ? data[p] : { connected: false };
+      STATE.platforms[p].tiktok = !!slot.connected;
+      STATE.platforms[p].tiktok_username = slot.username || slot.display_name || null;
     });
     save('platforms', STATE.platforms);
     renderPlatformsLists();
@@ -1939,7 +1949,10 @@ async function syncMetaStatus(){
 function handleOAuthReturn(){
   const params = new URLSearchParams(location.search);
   if (params.get('tiktok') === 'connected'){
-    toast('✅ TikTok подключён');
+    const which = params.get('profile') || sessionStorage.getItem('returnProfile') || 'creative';
+    const label = which === 'creative' ? 'Креативный' : 'Личный';
+    toast('✅ TikTok подключён (' + label + ')');
+    sessionStorage.removeItem('returnProfile');
     history.replaceState({}, '', location.pathname);
     syncTiktokStatus();
     navigate('profile');
