@@ -239,8 +239,8 @@ img, svg, video { display: block; max-width: 100%; }
 .icon-btn:active { transform: scale(.94); }
 .icon-btn svg { width: 16px; height: 16px; }
 
-/* Auth pill in the topbar — small, unobtrusive */
-#auth-pill { color: var(--text-2); position: relative; font-weight: 600; font-size: 13px; letter-spacing: -.01em; }
+/* Auth pill in the topbar — small, unobtrusive, always anchored right */
+#auth-pill { color: var(--text-2); position: relative; font-weight: 600; font-size: 13px; letter-spacing: -.01em; margin-left: auto; flex-shrink: 0; }
 #auth-pill[data-state="signed"] { background: var(--black); color: var(--white); }
 #auth-pill[data-state="signed"]:hover { background: var(--gray-800); }
 #auth-pill[data-state="anon"]::after {
