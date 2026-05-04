@@ -13,6 +13,35 @@
 <link rel="preconnect" href="https://rsms.me/" />
 <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
 <title>Studio</title>
+
+<!-- Supabase: anonymous sign-in + ideas sync across devices -->
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+  const SUPABASE_URL = 'https://vbgacydpvvbmfkyvomhp.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiZ2FjeWRwdnZibWZreXZvbWhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MjM4MDEsImV4cCI6MjA5MzA5OTgwMX0.diiYvMhVgc2rskoLPoKSWhAzT9za7KsO3dF56eKJ5Ew';
+  window.sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+  });
+  try {
+    let { data: { session } } = await window.sb.auth.getSession();
+    if (!session) {
+      const r = await window.sb.auth.signInAnonymously();
+      session = r.data?.session || null;
+      if (r.error) console.error('anon signin error:', r.error);
+    }
+    window.sbUser = session?.user || null;
+    window.sbSession = session || null;
+    // Set cookie so backend can read user_id
+    if (session?.access_token) {
+      const maxAge = Math.max(60, (session.expires_in || 3600) - 60);
+      document.cookie = `sb-access-token=${session.access_token}; Path=/; Max-Age=${maxAge}; SameSite=Lax; Secure`;
+    }
+    window.dispatchEvent(new CustomEvent('supabase-ready', { detail: { userId: window.sbUser?.id }}));
+    console.log('[supabase] signed in as', window.sbUser?.id, window.sbUser?.email || '(anon)');
+  } catch (e) {
+    console.error('[supabase] init failed:', e);
+  }
+</script>
 <style>
 /* ===== DESIGN TOKENS ===== */
 :root {
@@ -983,6 +1012,20 @@ img, svg, video { display: block; max-width: 100%; }
       <p class="page-sub">Подключи аккаунты для каждого направления.</p>
     </div>
 
+    <!-- Auth / Account section -->
+    <div class="row" id="auth-section" style="margin-bottom:24px">
+      <div class="row-info">
+        <div class="row-icon" id="auth-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div style="min-width:0;flex:1">
+          <div class="row-name" id="auth-name">Загрузка…</div>
+          <div class="row-desc" id="auth-desc"></div>
+        </div>
+      </div>
+      <button class="btn" data-size="sm" id="auth-btn" onclick="handleAuthClick()">…</button>
+    </div>
+
     <div class="profile-section-head" data-profile="creative">
       <span class="dot"></span>
       <h3>Креативный</h3>
@@ -1243,7 +1286,7 @@ function renderIdeas(){
   }).join('');
 }
 
-function deleteIdea(id, event){
+async function deleteIdea(id, event){
   if (event) event.stopPropagation();
   const idea = STATE.ideas.find(i => i.id === id);
   if (!idea) return;
@@ -1253,6 +1296,10 @@ function deleteIdea(id, event){
   renderIdeas();
   renderIdeaPicker();
   toast('Идея удалена');
+  if (window.sb && window.sbUser){
+    const { error } = await window.sb.from('ideas').delete().eq('id', id);
+    if (error) console.error('delete failed:', error);
+  }
 }
 
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
@@ -1304,7 +1351,7 @@ function closeSheet(){
   document.body.style.overflow = '';
 }
 
-function saveIdea(){
+async function saveIdea(){
   const title = document.getElementById('idea-title').value.trim();
   if (!title){ toast('Напиши заголовок'); return; }
   const data = {
@@ -1315,17 +1362,42 @@ function saveIdea(){
     image: STATE.ideaImageData,
   };
   if (STATE.editingIdeaId){
+    // Update local first (optimistic UI), then sync to DB
     const idea = STATE.ideas.find(i => i.id === STATE.editingIdeaId);
     if (idea){ Object.assign(idea, data); }
+    save('ideas', STATE.ideas);
+    closeSheet(); renderIdeas(); renderIdeaPicker();
     toast('Сохранено');
+    if (window.sb && window.sbUser){
+      const { error } = await window.sb.from('ideas').update({
+        profile: data.profile, title: data.title,
+        body: data.text, link: data.link, image: data.image,
+        updated_at: new Date().toISOString(),
+      }).eq('id', STATE.editingIdeaId);
+      if (error) console.error('update failed:', error);
+    }
   } else {
-    STATE.ideas.push({ id: uid(), date: Date.now(), ...data });
+    // Optimistic insert with temp ID, replace when DB returns real ID
+    const tempId = uid();
+    const tempIdea = { id: tempId, date: Date.now(), ...data };
+    STATE.ideas.push(tempIdea);
+    save('ideas', STATE.ideas);
+    closeSheet(); renderIdeas(); renderIdeaPicker();
     toast('Идея добавлена');
+    if (window.sb && window.sbUser){
+      const { data: row, error } = await window.sb.from('ideas').insert({
+        user_id: window.sbUser.id,
+        profile: data.profile, title: data.title,
+        body: data.text, link: data.link, image: data.image,
+      }).select().single();
+      if (!error && row){
+        tempIdea.id = row.id; // swap temp ID for DB ID
+        save('ideas', STATE.ideas);
+      } else if (error) {
+        console.error('insert failed:', error);
+      }
+    }
   }
-  save('ideas', STATE.ideas);
-  closeSheet();
-  renderIdeas();
-  renderIdeaPicker();
 }
 
 document.getElementById('idea-image-file').addEventListener('change', async (e) => {
@@ -1912,6 +1984,135 @@ handleOAuthReturn();
 syncTiktokStatus();
 syncYoutubeStatus();
 syncMetaStatus();
+
+// ============ SUPABASE: load + migrate ideas ============
+async function migrateLocalIdeasIfNeeded(){
+  if (load('migrated_v1', false)) return;
+  const localIdeas = (STATE.ideas || []).filter(i =>
+    i.title && !defaultIdeas().some(d => d.title === i.title) // skip defaults
+  );
+  if (localIdeas.length === 0) { save('migrated_v1', true); return; }
+  // Check if user already has ideas in DB
+  const { data: existing } = await window.sb.from('ideas').select('id').limit(1);
+  if (existing && existing.length > 0) { save('migrated_v1', true); return; }
+  const rows = localIdeas.map(i => ({
+    user_id: window.sbUser.id,
+    profile: i.profile || 'creative',
+    title: i.title,
+    body: i.text || '',
+    link: i.link || '',
+    image: i.image || '',
+  }));
+  const { error } = await window.sb.from('ideas').insert(rows);
+  if (!error) save('migrated_v1', true);
+  else console.error('migration failed:', error);
+}
+
+async function loadIdeasFromDb(){
+  const { data, error } = await window.sb
+    .from('ideas')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error){ console.error('load ideas failed:', error); return; }
+  STATE.ideas = (data || []).map(row => ({
+    id: row.id,
+    profile: row.profile,
+    title: row.title,
+    text: row.body || '',
+    link: row.link || '',
+    image: row.image || '',
+    date: new Date(row.created_at).getTime(),
+  }));
+  save('ideas', STATE.ideas);
+  renderIdeas();
+  renderIdeaPicker();
+}
+
+window.addEventListener('supabase-ready', async () => {
+  if (!window.sbUser) return;
+  console.log('[supabase] ready, syncing ideas...');
+  await migrateLocalIdeasIfNeeded();
+  await loadIdeasFromDb();
+  renderAuthSection();
+  syncSbCookie();
+});
+
+// Render auth section in Profile (login/logout)
+function renderAuthSection(){
+  const user = window.sbUser;
+  const nameEl = document.getElementById('auth-name');
+  const descEl = document.getElementById('auth-desc');
+  const btnEl = document.getElementById('auth-btn');
+  if (!nameEl || !btnEl) return;
+  if (!user){
+    nameEl.textContent = 'Не подключено';
+    descEl.textContent = 'Идеи живут только в этом браузере';
+    btnEl.textContent = 'Войти';
+    btnEl.dataset.variant = 'secondary';
+    return;
+  }
+  if (user.is_anonymous || !user.email){
+    nameEl.textContent = 'Гостевой режим';
+    descEl.textContent = 'Войди по email чтобы синĸать на все устройства';
+    btnEl.textContent = 'Войти по email';
+    btnEl.dataset.variant = 'secondary';
+  } else {
+    nameEl.textContent = user.email;
+    descEl.textContent = 'Идеи синĸаются на все твои устройства';
+    btnEl.textContent = 'Выйти';
+    btnEl.dataset.variant = 'ghost';
+  }
+}
+
+async function handleAuthClick(){
+  const user = window.sbUser;
+  if (!user || user.is_anonymous || !user.email){
+    const email = prompt('Email для входа (придёт ссылка для подтверждения):');
+    if (!email) return;
+    const { error } = await window.sb.auth.signInWithOtp({
+      email: email.trim(),
+      options: { emailRedirectTo: window.location.origin }
+    });
+    if (error) toast('Ошибка: ' + error.message, {long:true});
+    else toast('✉️ Ссылка отправлена на ' + email + '. Проверь почту.', {long:true});
+  } else {
+    if (!confirm('Выйти из аккаунта? Идеи останутся в облаке, при следующем входе вернутся.')) return;
+    await window.sb.auth.signOut();
+    location.reload();
+  }
+}
+
+// Sync Supabase JWT to a cookie so backend can read user_id
+function syncSbCookie(){
+  const session = window.sbSession;
+  if (session?.access_token){
+    const maxAge = Math.max(60, (session.expires_in || 3600) - 60);
+    document.cookie = `sb-access-token=${session.access_token}; Path=/; Max-Age=${maxAge}; SameSite=Lax; Secure`;
+  } else {
+    document.cookie = 'sb-access-token=; Path=/; Max-Age=0; SameSite=Lax';
+  }
+}
+
+// React to auth state changes (sign-in via email link, sign-out, etc.)
+if (window.sb){
+  window.sb.auth.onAuthStateChange(async (event, session) => {
+    console.log('[supabase] auth event:', event);
+    window.sbUser = session?.user || null;
+    window.sbSession = session || null;
+    syncSbCookie();
+    renderAuthSection();
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED'){
+      // Reload ideas — they're scoped to user_id by RLS
+      await loadIdeasFromDb();
+    }
+    if (event === 'SIGNED_OUT'){
+      STATE.ideas = [];
+      save('ideas', STATE.ideas);
+      save('migrated_v1', false); // allow re-migration on next login
+      renderIdeas();
+    }
+  });
+}
 
 document.getElementById('ideas-sub').textContent = (STATE.profile === 'creative') ? 'Креативный профиль — публикуешь на YT, TT, IG.' : 'Личный профиль — IG, TT.';
 
