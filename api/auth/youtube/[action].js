@@ -12,6 +12,7 @@ export default async function handler(req, res) {
     case 'login': return doLogin(req, res);
     case 'callback': return doCallback(req, res);
     case 'me': return doMe(req, res);
+    case 'stats': return doStats(req, res);
     case 'disconnect': return doDisconnect(req, res);
     default:
       res.statusCode = 404;
@@ -154,6 +155,92 @@ async function doMe(req, res) {
     }));
   } catch (e) {
     return res.end(JSON.stringify({ connected: false, error: 'network: ' + (e.message || e) }));
+  }
+}
+
+// Returns channel-level stats + top videos by view count.
+// Requires youtube.readonly scope (granted alongside upload during OAuth).
+async function doStats(req, res) {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store');
+
+  const cookies = parseCookies(req);
+  let token = cookies.yt_access_token;
+  if (!token) {
+    const userId = await getUserId(req);
+    if (userId) {
+      const dbToken = await getToken(userId, 'youtube');
+      if (dbToken) {
+        token = dbToken.access_token;
+        setCookie(res, 'yt_access_token', token, { maxAge: 3600 });
+      }
+    }
+  }
+  if (!token) {
+    res.statusCode = 401;
+    return res.end(JSON.stringify({ ok: false, error: 'not connected' }));
+  }
+
+  try {
+    // 1) Channel basics.
+    const chResp = await fetch(
+      'https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&mine=true',
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const chData = await chResp.json();
+    if (chData.error) {
+      if (chData.error.code === 401 || chData.error.code === 403) clearCookie(res, 'yt_access_token');
+      res.statusCode = 502;
+      return res.end(JSON.stringify({ ok: false, error: chData.error.message || 'channel fetch failed', code: chData.error.code }));
+    }
+    const ch = chData.items?.[0];
+    if (!ch) {
+      res.statusCode = 404;
+      return res.end(JSON.stringify({ ok: false, error: 'no channel found' }));
+    }
+
+    // 2) Top videos: search.list ordered by viewCount over user's own videos (no quota for full analytics).
+    let topVideos = [];
+    try {
+      const searchResp = await fetch(
+        'https://www.googleapis.com/youtube/v3/search?part=id&forMine=true&type=video&order=viewCount&maxResults=10',
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const searchData = await searchResp.json();
+      const ids = (searchData.items || []).map(i => i.id?.videoId).filter(Boolean);
+      if (ids.length){
+        const vidsResp = await fetch(
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${ids.join(',')}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const vidsData = await vidsResp.json();
+        topVideos = (vidsData.items || []).map(v => ({
+          id: v.id,
+          title: v.snippet?.title,
+          thumbnail: v.snippet?.thumbnails?.medium?.url || v.snippet?.thumbnails?.default?.url,
+          published_at: v.snippet?.publishedAt,
+          views: parseInt(v.statistics?.viewCount || '0', 10),
+          likes: parseInt(v.statistics?.likeCount || '0', 10),
+          comments: parseInt(v.statistics?.commentCount || '0', 10),
+        })).sort((a,b) => b.views - a.views);
+      }
+    } catch (e) { /* top videos optional */ }
+
+    return res.end(JSON.stringify({
+      ok: true,
+      channel: {
+        id: ch.id,
+        title: ch.snippet?.title,
+        thumbnail: ch.snippet?.thumbnails?.default?.url,
+        subscriber_count: parseInt(ch.statistics?.subscriberCount || '0', 10),
+        video_count: parseInt(ch.statistics?.videoCount || '0', 10),
+        view_count: parseInt(ch.statistics?.viewCount || '0', 10),
+      },
+      top_videos: topVideos,
+    }));
+  } catch (e) {
+    res.statusCode = 502;
+    return res.end(JSON.stringify({ ok: false, error: 'network: ' + (e.message || e) }));
   }
 }
 

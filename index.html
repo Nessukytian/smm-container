@@ -415,8 +415,11 @@ img, svg, video { display: block; max-width: 100%; }
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   overflow: hidden;
+  cursor: pointer;
   transition: transform .12s var(--ease), border-color .15s var(--ease), box-shadow .15s var(--ease);
 }
+.idea-card:hover { border-color: var(--border-strong); }
+.idea-card:active { transform: scale(.997); }
 .idea-delete {
   position: absolute; top: 10px; right: 10px;
   width: 28px; height: 28px;
@@ -527,6 +530,17 @@ img, svg, video { display: block; max-width: 100%; }
   padding-bottom: var(--safe-bottom);
   z-index: 25;
 }
+
+/* Visible legal footer — shown on every page so app reviewers (TikTok, Meta) can find ToS/PP from homepage */
+.legal-footer {
+  padding: 20px 16px calc(96px + var(--safe-bottom));
+  text-align: center;
+  border-top: 1px solid var(--border);
+  background: var(--gray-50);
+}
+.legal-footer-inner { max-width: 540px; margin: 0 auto; font-size: 12px; color: var(--text-3); display: inline-flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+.legal-footer-inner a { color: var(--text-2); text-decoration: none; }
+.legal-footer-inner a:hover { color: var(--text); text-decoration: underline; }
 .bottom-nav-inner {
   max-width: 540px; margin: 0 auto;
   display: grid; grid-template-columns: repeat(4, 1fr);
@@ -571,6 +585,15 @@ img, svg, video { display: block; max-width: 100%; }
 .sheet-inner { max-width: 540px; margin: 0 auto; padding: 0 var(--sp-4); }
 .sheet-title { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
 .sheet-sub { color: var(--text-2); font-size: 14px; margin: 4px 0 var(--sp-5); }
+.view-tag {
+  display: inline-block; font-size: 11px; font-weight: 500;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: var(--r-pill);
+  background: var(--accent-tint); color: var(--accent);
+  margin-bottom: 10px;
+}
+.view-tag[data-profile="personal"] { background: var(--personal-tint); color: var(--personal); }
+.view-tag[data-profile="creative"] { background: var(--creative-tint); color: var(--creative); }
 
 /* ===== PLATFORM CARDS ===== */
 .platform-grid {
@@ -677,6 +700,17 @@ img, svg, video { display: block; max-width: 100%; }
 .stat-delta { font-size: 12px; font-weight: 500; margin-top: 2px; color: var(--success); display: flex; align-items: center; gap: 3px; }
 .stat-delta[data-neg="true"] { color: var(--error); }
 .stat-spark { margin-top: var(--sp-2); height: 28px; }
+.stat-card[data-empty="true"] .stat-value { color: var(--text-3); font-weight: 500; }
+
+/* Stats help block */
+.stats-help { background: var(--gray-50); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px 16px; }
+.stats-help summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.stats-help summary:hover { color: var(--text); }
+.stats-help-body { margin-top: 12px; font-size: 13px; color: var(--text-2); line-height: 1.55; }
+.stats-help-body p { margin: 0 0 8px; }
+.stats-help-body ul { margin: 8px 0; padding-left: 18px; }
+.stats-help-body li { margin: 6px 0; }
+.stats-help-body code { background: var(--gray-200); padding: 1px 5px; border-radius: 4px; font-size: 11.5px; font-family: var(--mono); }
 
 .video-row { display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3) 0; border-bottom: 1px solid var(--border); }
 .video-row:last-child { border-bottom: none; }
@@ -1016,37 +1050,25 @@ img, svg, video { display: block; max-width: 100%; }
 
     <div class="filter-row" id="stats-filter"></div>
 
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-eyebrow">Просмотры</div>
-        <div class="stat-value">847.2K</div>
-        <div class="stat-delta">▲ 23.4%</div>
-        <svg class="stat-spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline fill="none" stroke="#000" stroke-width="1.5" points="0,24 14,18 28,20 42,14 56,10 70,12 84,6 100,2"/></svg>
-      </div>
-      <div class="stat-card">
-        <div class="stat-eyebrow">Подписчики</div>
-        <div class="stat-value">+1,284</div>
-        <div class="stat-delta">▲ 18.1%</div>
-        <svg class="stat-spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline fill="none" stroke="#000" stroke-width="1.5" points="0,22 14,20 28,16 42,18 56,12 70,8 84,6 100,4"/></svg>
-      </div>
-      <div class="stat-card">
-        <div class="stat-eyebrow">Engagement</div>
-        <div class="stat-value">8.4%</div>
-        <div class="stat-delta" data-neg="true">▼ 2.1%</div>
-        <svg class="stat-spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline fill="none" stroke="#000" stroke-width="1.5" points="0,4 14,8 28,6 42,14 56,12 70,18 84,16 100,20"/></svg>
-      </div>
-      <div class="stat-card">
-        <div class="stat-eyebrow">Доход</div>
-        <div class="stat-value">$1,247</div>
-        <div class="stat-delta">▲ 12.3%</div>
-        <svg class="stat-spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline fill="none" stroke="#000" stroke-width="1.5" points="0,24 14,20 28,14 42,16 56,10 70,12 84,6 100,4"/></svg>
-      </div>
-    </div>
+    <div class="stats-grid" id="stats-grid"></div>
 
     <div class="divider"></div>
 
     <div class="eyebrow" style="margin-bottom:12px">Топ за неделю</div>
     <div id="top-videos"></div>
+
+    <details class="stats-help" style="margin-top:32px">
+      <summary>Откуда возьмутся реальные цифры?</summary>
+      <div class="stats-help-body">
+        <p>Сейчас данные пустые — это правда. Чтобы появились настоящие метрики, нужно:</p>
+        <ul>
+          <li><b>YouTube</b> — добавить scope <code>youtube.readonly</code> и дёрнуть <code>/youtube/v3/channels?part=statistics&mine=true</code> + <code>/youtube/v3/videos</code> для топа.</li>
+          <li><b>TikTok</b> — добавить scope <code>video.list</code> и <code>research.adlib.basic</code>; данные через <code>/v2/research/video/query/</code>. Для просмотров своего аккаунта — <code>/v2/video/list/</code>.</li>
+          <li><b>Instagram / Facebook</b> — есть в текущих скоупах: <code>/{ig-user-id}/insights</code> и <code>/{page-id}/insights</code>.</li>
+        </ul>
+        <p>Если хочешь — скажи «подтяни статистику», и я добавлю scopes + endpoints.</p>
+      </div>
+    </details>
   </main>
 
   <!-- ============ PROFILE PAGE ============ -->
@@ -1106,6 +1128,17 @@ img, svg, video { display: block; max-width: 100%; }
     <p style="text-align:center;color:var(--text-3);font-size:11px;margin:32px 0 0;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.08em">Studio v0.2</p>
   </main>
 
+  <!-- ============ LEGAL FOOTER (visible on every page so reviewers can find ToS/PP) ============ -->
+  <footer class="legal-footer">
+    <div class="legal-footer-inner">
+      <a href="/terms.html">Terms of Service</a>
+      <span aria-hidden="true">·</span>
+      <a href="/privacy.html">Privacy Policy</a>
+      <span aria-hidden="true">·</span>
+      <a href="mailto:wittyvisionary@yahoo.com">Contact</a>
+    </div>
+  </footer>
+
   <!-- ============ BOTTOM NAV ============ -->
   <nav class="bottom-nav">
     <div class="bottom-nav-inner">
@@ -1130,7 +1163,36 @@ img, svg, video { display: block; max-width: 100%; }
 </div>
 
 <!-- ============ IDEA SHEET ============ -->
-<div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
+<div class="backdrop" id="backdrop" onclick="closeAllSheets()"></div>
+
+<!-- ============ VIEW SHEET (просмотр идеи) ============ -->
+<div class="sheet" id="sheet-idea-view">
+  <div class="sheet-grip"></div>
+  <div class="sheet-inner">
+    <div class="view-tag" id="view-tag">Креативный</div>
+    <div class="sheet-title" id="view-title"></div>
+    <img class="img-preview" id="view-image" style="display:none;margin-top:14px">
+    <div class="view-text" id="view-text" style="margin-top:14px;color:var(--text);line-height:1.55;white-space:pre-wrap"></div>
+    <a class="idea-link" id="view-link" target="_blank" rel="noopener" style="display:none;margin-top:14px;font-size:14px"></a>
+    <div class="view-meta" id="view-meta" style="margin-top:14px;color:var(--text-3);font-size:12px;font-family:var(--mono)"></div>
+
+    <div class="view-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:24px">
+      <button class="btn" data-block onclick="viewToEdit()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Редаĸтировать
+      </button>
+      <button class="btn" data-block onclick="viewToPublish()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Залить
+      </button>
+    </div>
+    <button class="btn" data-variant="ghost" data-block onclick="viewDelete()" style="margin-top:8px;color:var(--error)">
+      Удалить идею
+    </button>
+    <button class="btn" data-variant="ghost" data-block onclick="closeIdeaView()" style="margin-top:6px">Заĸрыть</button>
+  </div>
+</div>
+
 <div class="sheet" id="sheet-idea">
   <div class="sheet-grip"></div>
   <div class="sheet-inner">
@@ -1282,6 +1344,8 @@ function navigate(page){
   // На странице Профиль профиль-свитчер не нужен — там оба профиля показаны вместе
   const switcher = document.querySelector('.profile-switch');
   if (switcher) switcher.style.display = (page === 'profile') ? 'none' : 'inline-flex';
+  // Lazy-fetch YT stats при заходе на Стату
+  if (page === 'stats' && typeof syncYoutubeStats === 'function') syncYoutubeStats();
   window.scrollTo(0, 0);
 }
 
@@ -1308,7 +1372,7 @@ function renderIdeas(){
     let host = '';
     if (i.link){ try { host = new URL(i.link).hostname.replace('www.',''); } catch(e){ host = i.link.slice(0,30); } }
     return `
-      <div class="idea-card">
+      <div class="idea-card" onclick="openIdeaView('${i.id}')" role="button" tabindex="0">
         <button class="idea-delete" onclick="deleteIdea('${i.id}', event)" aria-label="Удалить идею">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
         </button>
@@ -1319,7 +1383,7 @@ function renderIdeas(){
           ${i.text ? `<div class="idea-text">${escapeHtml(i.text)}</div>` : ''}
           ${i.link ? `<a class="idea-link" href="${escapeHtml(i.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>${escapeHtml(host)}</span></a>` : ''}
         </div>
-        <div class="idea-actions">
+        <div class="idea-actions" onclick="event.stopPropagation()">
           <button class="btn" data-variant="secondary" data-size="sm" onclick="editIdea('${i.id}')">Изменить</button>
           <button class="btn" data-size="sm" onclick="useIdea('${i.id}')">Сделать видео →</button>
         </div>
@@ -1387,9 +1451,77 @@ function showSheet(){
   document.body.style.overflow = 'hidden';
 }
 function closeSheet(){
-  document.getElementById('backdrop').dataset.open = 'false';
   document.getElementById('sheet-idea').dataset.open = 'false';
-  document.body.style.overflow = '';
+  // backdrop оставляем, если открыт второй sheet (просмотр)
+  if (document.getElementById('sheet-idea-view').dataset.open !== 'true'){
+    document.getElementById('backdrop').dataset.open = 'false';
+    document.body.style.overflow = '';
+  }
+}
+
+// ===== VIEW MODE =====
+let viewingIdeaId = null;
+
+function openIdeaView(id){
+  const i = STATE.ideas.find(x => x.id === id);
+  if (!i) return;
+  viewingIdeaId = id;
+  const tag = document.getElementById('view-tag');
+  tag.textContent = i.profile === 'creative' ? 'Креативный' : 'Личный';
+  tag.dataset.profile = i.profile;
+  document.getElementById('view-title').textContent = i.title || '';
+  const imgEl = document.getElementById('view-image');
+  if (i.image){ imgEl.src = i.image; imgEl.style.display = 'block'; }
+  else { imgEl.style.display = 'none'; imgEl.src = ''; }
+  const textEl = document.getElementById('view-text');
+  textEl.textContent = i.text || '';
+  textEl.style.display = i.text ? 'block' : 'none';
+  const linkEl = document.getElementById('view-link');
+  if (i.link){
+    let host = i.link;
+    try { host = new URL(i.link).hostname.replace('www.',''); } catch(e){}
+    linkEl.href = i.link;
+    linkEl.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> <span>${escapeHtml(host)}</span>`;
+    linkEl.style.display = 'inline-flex';
+  } else {
+    linkEl.style.display = 'none';
+  }
+  const dateStr = i.date ? new Date(i.date).toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'}) : '';
+  document.getElementById('view-meta').textContent = dateStr;
+
+  document.getElementById('backdrop').dataset.open = 'true';
+  document.getElementById('sheet-idea-view').dataset.open = 'true';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeIdeaView(){
+  document.getElementById('sheet-idea-view').dataset.open = 'false';
+  if (document.getElementById('sheet-idea').dataset.open !== 'true'){
+    document.getElementById('backdrop').dataset.open = 'false';
+    document.body.style.overflow = '';
+  }
+  viewingIdeaId = null;
+}
+
+function closeAllSheets(){ closeSheet(); closeIdeaView(); }
+
+function viewToEdit(){
+  if (!viewingIdeaId) return;
+  const id = viewingIdeaId;
+  closeIdeaView();
+  setTimeout(() => editIdea(id), 280);
+}
+function viewToPublish(){
+  if (!viewingIdeaId) return;
+  const id = viewingIdeaId;
+  closeIdeaView();
+  setTimeout(() => useIdea(id), 280);
+}
+function viewDelete(){
+  if (!viewingIdeaId) return;
+  const id = viewingIdeaId;
+  closeIdeaView();
+  setTimeout(() => deleteIdea(id), 200);
 }
 
 async function saveIdea(){
@@ -1443,12 +1575,52 @@ async function saveIdea(){
 
 document.getElementById('idea-image-file').addEventListener('change', async (e) => {
   const f = e.target.files[0]; if (!f) return;
-  if (f.size > 1.5 * 1024 * 1024){ toast('Картинка > 1.5МБ — слишком большая для local storage'); return; }
-  STATE.ideaImageData = await fileToDataURL(f);
+  // Hard cap — обычные фото с iPhone 5–8 МБ, всё что выше — почти точно ошибка/HEIC.
+  if (f.size > 25 * 1024 * 1024){ toast('Файл больше 25 МБ — выбери поменьше', {long:true}); return; }
+  try {
+    // Ужимаем до 1280px по большой стороне, JPEG q=0.82 — обычно <300 KB.
+    const compressed = await compressImageToDataURL(f, 1280, 0.82);
+    STATE.ideaImageData = compressed;
+  } catch (err){
+    console.error('compress failed:', err);
+    // Фолбек: если canvas не справился (HEIC и тп) — попробуем сырой dataURL, но с контролем размера.
+    const raw = await fileToDataURL(f);
+    if (raw.length > 4 * 1024 * 1024){
+      toast('Не получилось ужать картинку — выбери JPG/PNG поменьше', {long:true});
+      return;
+    }
+    STATE.ideaImageData = raw;
+  }
   document.getElementById('idea-image-preview').src = STATE.ideaImageData;
   document.getElementById('idea-image-preview').style.display = 'block';
   document.getElementById('idea-image-drop').style.display = 'none';
 });
+
+// Уменьшаем фото через canvas — даём <300 KB JPEG ~1280px, чтобы влезало в Supabase TEXT.
+function compressImageToDataURL(file, maxDim = 1280, quality = 0.82){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      try {
+        const ratio = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.round(img.width * ratio);
+        const h = Math.round(img.height * ratio);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; // белый фон под прозрачные PNG
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataURL = canvas.toDataURL('image/jpeg', quality);
+        URL.revokeObjectURL(url);
+        resolve(dataURL);
+      } catch(e){ URL.revokeObjectURL(url); reject(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image decode failed')); };
+    img.src = url;
+  });
+}
 
 function useIdea(id){
   const i = STATE.ideas.find(x => x.id === id);
@@ -1828,7 +2000,9 @@ async function toggleConnect(profile, k){
         }
       });
       save('platforms', STATE.platforms);
-      renderPlatformsLists(); renderPlatformGrid();
+      // сбрасываем кеш статов
+      STATS_STATE.youtube = null; STATS_STATE.lastFetch = 0;
+      renderPlatformsLists(); renderPlatformGrid(); renderStatsCards(); renderTopVideos();
       toast('YouTube отключён');
     } else {
       sessionStorage.setItem('returnProfile', profile);
@@ -1903,6 +2077,8 @@ async function syncYoutubeStatus(){
     save('platforms', STATE.platforms);
     renderPlatformsLists();
     renderPlatformGrid();
+    // Если YT подключён — сразу подтягиваем статистику.
+    if (connected && typeof syncYoutubeStats === 'function') syncYoutubeStats();
   } catch(e){ /* offline / backend not deployed */ }
 }
 
@@ -1987,26 +2163,115 @@ function handleOAuthReturn(){
 }
 
 /* ============ STATS ============ */
-function renderTopVideos(){
-  const data = [
-    { title:'30 дней с iPhone 17 Pro — нюансы', views:'234.1K', likes:'18.4K', cmts:'1.2K' },
-    { title:'Утренняя 5-минутка без оборудования', views:'89.7K', likes:'12.1K', cmts:'587' },
-    { title:'Объясняю квантовую запутанность за 60с', views:'412.3K', likes:'47.2K', cmts:'3.1K' },
-    { title:'Mumblecore: разбор тренда', views:'78.4K', likes:'9.3K', cmts:'412' },
-  ];
-  document.getElementById('top-videos').innerHTML = data.map(v => `
-    <div class="video-row">
-      <div class="video-thumb"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
-      <div class="video-info">
-        <div class="video-title">${v.title}</div>
-        <div class="video-meta">
-          <span>${v.views} просмотров</span>
-          <span>${v.likes} лайков</span>
-          <span>${v.cmts} комментариев</span>
-        </div>
-      </div>
+// Кеш статов чтобы не дёргать YT API на каждый ререндер.
+const STATS_STATE = { youtube: null, lastFetch: 0 };
+
+function fmtNum(n){
+  if (n == null || isNaN(n)) return '—';
+  if (n >= 1e9) return (n / 1e9).toFixed(1).replace(/\.0$/,'') + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(1).replace(/\.0$/,'') + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1).replace(/\.0$/,'') + 'K';
+  return String(n);
+}
+
+function renderStatsCards(){
+  const el = document.getElementById('stats-grid');
+  if (!el) return;
+  const yt = STATS_STATE.youtube;
+  const ytConn = STATE.platforms?.creative?.youtube;
+
+  // Если YT подключён и есть данные — рисуем по нему. Иначе — пустое.
+  let cards;
+  if (yt && yt.ok){
+    const ch = yt.channel || {};
+    const totalEngagement = (yt.top_videos || []).reduce((acc, v) => acc + v.likes + v.comments, 0);
+    const totalViews = (yt.top_videos || []).reduce((acc, v) => acc + v.views, 0);
+    const eng = totalViews > 0 ? ((totalEngagement / totalViews) * 100).toFixed(1) : null;
+    cards = [
+      { eyebrow: 'Подписчиĸи YT',   value: fmtNum(ch.subscriber_count) },
+      { eyebrow: 'Все просмотры',   value: fmtNum(ch.view_count) },
+      { eyebrow: 'Видео на ĸанале', value: fmtNum(ch.video_count) },
+      { eyebrow: 'Engagement топ-10', value: eng != null ? eng + '%' : '—' },
+    ];
+  } else {
+    cards = [
+      { eyebrow: 'Подписчики',   value: '—' },
+      { eyebrow: 'Просмотры',    value: '—' },
+      { eyebrow: 'Видео',        value: '—' },
+      { eyebrow: 'Engagement',   value: '—' },
+    ];
+  }
+  el.innerHTML = cards.map(c => `
+    <div class="stat-card" data-empty="${c.value === '—' ? 'true' : 'false'}">
+      <div class="stat-eyebrow">${c.eyebrow}</div>
+      <div class="stat-value">${c.value}</div>
+      <div class="stat-delta" style="color:var(--text-3)">${c.value === '—' ? (ytConn ? 'грузится...' : 'YT не подĸлючён') : 'YouTube'}</div>
     </div>
   `).join('');
+}
+
+function renderTopVideos(){
+  const yt = STATS_STATE.youtube;
+  const el = document.getElementById('top-videos');
+  if (!el) return;
+  const ytConn = STATE.platforms?.creative?.youtube;
+
+  if (!ytConn){
+    el.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div class="empty-title">Подĸлючи YouTube</div>
+        <div class="empty-sub">Зайди в Профиль → YouTube → Подĸлючить. Тогда сюда подтянутся реальные просмотры твоих видео.</div>
+      </div>`;
+    return;
+  }
+  if (!yt){
+    el.innerHTML = `<div class="empty"><div class="empty-title">Загружаю...</div></div>`;
+    return;
+  }
+  if (!yt.ok){
+    el.innerHTML = `<div class="empty"><div class="empty-title">Ошибĸа</div><div class="empty-sub">${escapeHtml(yt.error || 'не удалось получить данные')}</div></div>`;
+    return;
+  }
+  const videos = yt.top_videos || [];
+  if (videos.length === 0){
+    el.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+        <div class="empty-title">Видео ещё нет</div>
+        <div class="empty-sub">Залей первое — потом увидишь его здесь.</div>
+      </div>`;
+    return;
+  }
+  el.innerHTML = videos.map(v => `
+    <a class="video-row" href="https://youtu.be/${v.id}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+      <div class="video-thumb" style="background-image:url('${v.thumbnail || ''}');background-size:cover;background-position:center">
+        ${v.thumbnail ? '' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>'}
+      </div>
+      <div class="video-info">
+        <div class="video-title">${escapeHtml(v.title || 'Untitled')}</div>
+        <div class="video-meta">
+          <span>${fmtNum(v.views)} просмотров</span>
+          <span>${fmtNum(v.likes)} лайĸов</span>
+          <span>${fmtNum(v.comments)} ĸомм.</span>
+        </div>
+      </div>
+    </a>
+  `).join('');
+}
+
+async function syncYoutubeStats(){
+  if (!STATE.platforms?.creative?.youtube) return;
+  // Кешируем 60 сек — лишние API вызовы не нужны.
+  if (STATS_STATE.youtube && (Date.now() - STATS_STATE.lastFetch) < 60_000) return;
+  try {
+    const r = await fetch('/api/auth/youtube/stats', { cache: 'no-store' });
+    const data = await r.json();
+    STATS_STATE.youtube = data;
+    STATS_STATE.lastFetch = Date.now();
+    renderStatsCards();
+    renderTopVideos();
+  } catch(e){ /* offline */ }
 }
 
 function renderStatsFilter(){
@@ -2021,6 +2286,7 @@ document.querySelectorAll('.profile-tab').forEach(b => b.dataset.active = (b.dat
 renderIdeas();
 renderPlatformGrid();
 renderPlatformsLists();
+renderStatsCards();
 renderTopVideos();
 renderStatsFilter();
 renderDescTabs();
@@ -2248,25 +2514,28 @@ if ('serviceWorker' in navigator) {
 
 /* Esc to close sheet */
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeSheet();
+  if (e.key === 'Escape') closeAllSheets();
 });
 
-/* Drag-down to close sheet */
-let dragStartY = null;
-const sheet = document.getElementById('sheet-idea');
-sheet.addEventListener('touchstart', e => { if (sheet.scrollTop === 0) dragStartY = e.touches[0].clientY; }, { passive: true });
-sheet.addEventListener('touchmove', e => {
-  if (dragStartY === null) return;
-  const dy = e.touches[0].clientY - dragStartY;
-  if (dy > 0) sheet.style.transform = `translateY(${dy}px)`;
-}, { passive: true });
-sheet.addEventListener('touchend', () => {
-  if (dragStartY === null) return;
-  const dy = parseInt(sheet.style.transform.replace(/[^\d-]/g, '') || '0');
-  if (dy > 100) closeSheet();
-  sheet.style.transform = '';
-  dragStartY = null;
-});
+/* Drag-down to close sheet — для обоих листов */
+function bindDragClose(sheetEl, onClose){
+  let startY = null;
+  sheetEl.addEventListener('touchstart', e => { if (sheetEl.scrollTop === 0) startY = e.touches[0].clientY; }, { passive: true });
+  sheetEl.addEventListener('touchmove', e => {
+    if (startY === null) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 0) sheetEl.style.transform = `translateY(${dy}px)`;
+  }, { passive: true });
+  sheetEl.addEventListener('touchend', () => {
+    if (startY === null) return;
+    const dy = parseInt(sheetEl.style.transform.replace(/[^\d-]/g, '') || '0');
+    if (dy > 100) onClose();
+    sheetEl.style.transform = '';
+    startY = null;
+  });
+}
+bindDragClose(document.getElementById('sheet-idea'), closeSheet);
+bindDragClose(document.getElementById('sheet-idea-view'), closeIdeaView);
 </script>
 </body>
 </html>

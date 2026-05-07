@@ -1,109 +1,122 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Privacy Policy — Studio</title>
+<meta name="description" content="Privacy Policy for Studio — how Studio collects, uses, and protects your data." />
 <style>
-  :root{--bg:#0a0a0f;--surface:#1a1a25;--text:#f5f5f7;--text-2:#a8a8b3;--accent:#a78bfa;--border:rgba(255,255,255,0.08)}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,Inter,Segoe UI,Roboto,sans-serif;line-height:1.6;font-size:16px}
+  body{margin:0;background:#fff;color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,Inter,Segoe UI,Roboto,sans-serif;line-height:1.6;font-size:16px}
   .wrap{max-width:760px;margin:0 auto;padding:48px 24px 80px}
-  .back{display:inline-flex;align-items:center;gap:8px;color:var(--text-2);text-decoration:none;font-size:14px;margin-bottom:32px}
-  .back:hover{color:var(--accent)}
-  h1{font-size:32px;letter-spacing:-0.02em;margin:0 0 8px}
-  .meta{color:var(--text-2);font-size:14px;margin-bottom:32px}
-  h2{font-size:20px;margin:32px 0 12px;letter-spacing:-0.01em}
-  p,li{color:#d1d1d8}
-  a{color:var(--accent)}
+  .back{display:inline-flex;align-items:center;gap:8px;color:#525252;text-decoration:none;font-size:14px;margin-bottom:32px}
+  .back:hover{color:#000}
+  .brand{display:inline-flex;align-items:center;gap:10px;margin-bottom:24px}
+  .brand-mark{width:28px;height:28px;border-radius:8px;background:#000;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;letter-spacing:-.04em}
+  .brand-name{font-weight:600;font-size:16px}
+  h1{font-size:34px;letter-spacing:-0.02em;margin:0 0 8px}
+  .meta{color:#737373;font-size:14px;margin-bottom:32px}
+  h2{font-size:20px;margin:32px 0 12px;letter-spacing:-0.01em;color:#0a0a0a}
+  p,li{color:#262626}
+  a{color:#2b59ff}
   ul{padding-left:22px}
   li{margin-bottom:6px}
-  .note{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin:24px 0;color:var(--text-2);font-size:14px}
   table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
-  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
-  th{color:var(--text-2);font-weight:600;background:var(--surface)}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e8e8e8;vertical-align:top}
+  th{color:#525252;font-weight:600;background:#fafafa}
+  .nav-links{margin-top:48px;padding-top:24px;border-top:1px solid #e8e8e8;display:flex;gap:20px;font-size:14px;color:#737373}
+  .nav-links a{color:#525252;text-decoration:none}
+  .nav-links a:hover{color:#000}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <a class="back" href="/">← К приложению</a>
-  <h1>Privacy Policy</h1>
-  <div class="meta">Last updated: April 30, 2026</div>
+  <a class="back" href="/">← Back to Studio</a>
+  <div class="brand"><span class="brand-mark">S</span><span class="brand-name">Studio</span></div>
+  <h1>Studio — Privacy Policy</h1>
+  <div class="meta">Last updated: May 7, 2026</div>
 
-  <p>This Privacy Policy describes how Studio (the "Service") collects, uses, stores, and discloses information when you use the application. The Service is a self-hosted personal tool operated by an individual ("Owner").</p>
+  <p>This Privacy Policy describes how <b>Studio</b> ("Studio", the "Service", "we", "us") collects, uses, stores, and discloses information when you use the Studio application. Studio is a content management application that helps social media creators publish videos to TikTok, YouTube, Instagram, and Facebook from a single interface.</p>
 
-  <h2>1. Information We Collect</h2>
-  <p>The Service collects only the information needed to operate its intended features:</p>
+  <h2>1. Information Studio Collects</h2>
+  <p>Studio collects only the information needed to operate its features:</p>
 
   <table>
     <tr><th>Category</th><th>Examples</th><th>Purpose</th></tr>
-    <tr><td>Content data</td><td>Video files, thumbnails, descriptions, hashtags, ideas, references</td><td>To plan and publish content to selected platforms</td></tr>
-    <tr><td>Authentication tokens</td><td>OAuth access &amp; refresh tokens for connected platforms</td><td>To publish on your behalf via the platforms' official APIs</td></tr>
-    <tr><td>Account metadata</td><td>Connected account usernames, IDs</td><td>To display which accounts are linked</td></tr>
-    <tr><td>Analytics data</td><td>Aggregated views, likes, comments returned by platform APIs</td><td>To display performance dashboards</td></tr>
-    <tr><td>Technical logs</td><td>API request timestamps, error messages</td><td>Debugging and reliability</td></tr>
+    <tr><td>Account info</td><td>Email address (when you sign in)</td><td>To create your Studio account and sync your data across devices</td></tr>
+    <tr><td>Content data</td><td>Video files, thumbnails, descriptions, hashtags, ideas, references, links</td><td>To plan and publish content to platforms you select</td></tr>
+    <tr><td>OAuth tokens</td><td>Access &amp; refresh tokens for connected platforms (TikTok, YouTube, Meta)</td><td>To publish on your behalf via the official APIs of the platforms you connect</td></tr>
+    <tr><td>Connected-account metadata</td><td>Connected account usernames, IDs, profile picture URLs</td><td>To display which accounts are linked in the Profile page</td></tr>
+    <tr><td>Public engagement metrics</td><td>Aggregated views, likes, comments returned by platform APIs</td><td>To display performance dashboards in the Stats page</td></tr>
+    <tr><td>Technical logs</td><td>API request timestamps, error messages</td><td>Debugging and reliability of Studio</td></tr>
   </table>
 
-  <p>The Service does <b>not</b> collect: location, contacts, browsing history outside the app, biometric data, or payment information.</p>
+  <p>Studio does <b>not</b> collect: precise geolocation, contacts, browsing history outside the application, biometric data, or payment information. Studio does not place advertising cookies and does not track you across other websites.</p>
 
-  <h2>2. How We Use Information</h2>
+  <h2>2. How Studio Uses Your Information</h2>
   <ul>
-    <li>To allow you to publish your videos to platforms you have authorized</li>
-    <li>To present aggregated analytics returned by those platforms</li>
-    <li>To generate AI-assisted descriptions via the Anthropic API when you request</li>
-    <li>To maintain the security and reliability of the Service</li>
+    <li>To allow you to publish your videos to the platforms you have authorized;</li>
+    <li>To present aggregated public engagement metrics returned by those platforms;</li>
+    <li>To generate optional AI-assisted post descriptions when you request, via the Anthropic Claude API;</li>
+    <li>To maintain the security, reliability, and integrity of Studio.</li>
   </ul>
-  <p>We do not sell, rent, or trade your personal information. We do not use your content to train any machine learning model.</p>
+  <p>Studio does not sell, rent, or trade your personal information. Studio does not use your content to train any machine-learning model.</p>
 
   <h2>3. Where Your Data Is Stored</h2>
-  <p>Data is stored in the following infrastructure, which the Owner controls:</p>
+  <p>Studio stores data in the following providers:</p>
   <ul>
-    <li><b>Supabase</b> (hosted PostgreSQL database) — ideas, post metadata, OAuth tokens, analytics snapshots</li>
-    <li><b>Cloudflare R2</b> (object storage) — uploaded video files and thumbnails</li>
-    <li><b>Vercel</b> — application hosting and serverless functions</li>
-    <li><b>Browser local storage</b> — for offline drafts on your own device</li>
+    <li><b>Supabase</b> (managed PostgreSQL) — Studio account email, ideas, post metadata, OAuth tokens, analytics snapshots. Tokens are encrypted at rest.</li>
+    <li><b>Vercel Blob</b> — temporary storage for uploaded video files (only as long as needed to forward them to the destination platform; deleted afterwards or within 24 hours).</li>
+    <li><b>Vercel</b> — application hosting and serverless function execution.</li>
+    <li><b>Browser local storage</b> — for offline drafts on your device only; never transmitted unless you choose to sync.</li>
   </ul>
-  <p>OAuth access tokens are stored encrypted at rest. Tokens are used only to call the official APIs of the platforms you have connected.</p>
+  <p>OAuth access tokens are used only to call the official APIs of the platforms you have connected. Tokens are never shared with any other third party.</p>
 
   <h2>4. Third-Party Services</h2>
-  <p>When you connect a third-party account, your interactions with that platform are governed by that platform's privacy policy:</p>
+  <p>When you connect a third-party platform to Studio, your interactions with that platform are also governed by that platform's privacy policy:</p>
   <ul>
-    <li>YouTube / Google: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></li>
-    <li>Meta (Facebook, Instagram): <a href="https://www.facebook.com/privacy/policy" target="_blank" rel="noopener">facebook.com/privacy/policy</a></li>
-    <li>TikTok: <a href="https://www.tiktok.com/legal/privacy-policy" target="_blank" rel="noopener">tiktok.com/legal/privacy-policy</a></li>
-    <li>Telegram: <a href="https://telegram.org/privacy" target="_blank" rel="noopener">telegram.org/privacy</a></li>
-    <li>VK: <a href="https://vk.com/privacy" target="_blank" rel="noopener">vk.com/privacy</a></li>
-    <li>Anthropic: <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">anthropic.com/legal/privacy</a></li>
+    <li><b>TikTok</b>: <a href="https://www.tiktok.com/legal/privacy-policy" target="_blank" rel="noopener">tiktok.com/legal/privacy-policy</a></li>
+    <li><b>YouTube / Google</b>: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a> — Studio's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, including the Limited Use requirements.</li>
+    <li><b>Meta (Facebook, Instagram)</b>: <a href="https://www.facebook.com/privacy/policy" target="_blank" rel="noopener">facebook.com/privacy/policy</a></li>
+    <li><b>Anthropic</b>: <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">anthropic.com/legal/privacy</a></li>
+    <li><b>Supabase</b>: <a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a></li>
+    <li><b>Vercel</b>: <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">vercel.com/legal/privacy-policy</a></li>
   </ul>
 
   <h2>5. Data Retention</h2>
-  <p>Content data and analytics are retained as long as you use the Service. OAuth tokens are retained until you disconnect the corresponding platform from the Settings page or revoke access in that platform's settings. You may delete all of your data at any time using the "Reset all data" option in Settings.</p>
+  <p>Content data and analytics are retained for as long as you use Studio. OAuth tokens are retained until you disconnect the corresponding platform from the Profile page or revoke access through that platform's own settings. You may delete all of your data at any time using the "Reset all data" option in Studio. Account deletion is irreversible.</p>
 
   <h2>6. Your Rights</h2>
-  <p>Depending on where you live, you may have the right to:</p>
+  <p>Depending on your jurisdiction (GDPR, CCPA, etc.) you may have the right to:</p>
   <ul>
-    <li>Access the personal data the Service holds about you</li>
-    <li>Correct inaccurate data</li>
-    <li>Delete your data</li>
-    <li>Withdraw consent and disconnect linked accounts</li>
-    <li>Object to or restrict certain processing</li>
+    <li>Access the personal data Studio holds about you;</li>
+    <li>Correct inaccurate data;</li>
+    <li>Delete your data ("right to be forgotten");</li>
+    <li>Withdraw consent and disconnect linked platforms;</li>
+    <li>Object to or restrict certain processing;</li>
+    <li>Receive your data in a portable format.</li>
   </ul>
-  <p>To exercise any of these rights, contact the email at the bottom of this page. Because the Service is a personal tool with a single operator, requests are typically handled within seven (7) days.</p>
+  <p>To exercise any of these rights, email the address at the bottom of this page. Studio aims to respond within thirty (30) days.</p>
 
   <h2>7. Children's Privacy</h2>
-  <p>The Service is not directed to anyone under the age of 13 (or the equivalent minimum age in your jurisdiction). The Owner does not knowingly collect personal data from children.</p>
+  <p>Studio is not directed to anyone under the age of 13 (or the equivalent minimum age in your jurisdiction). Studio does not knowingly collect personal data from children. If we learn that a child has provided us with personal data, we will delete it.</p>
 
   <h2>8. Security</h2>
-  <p>The Service uses HTTPS, encrypted token storage, and least-privilege scopes when requesting platform permissions. However, no method of electronic storage or transmission is 100% secure. Use the Service at your own risk.</p>
+  <p>Studio uses HTTPS for all communications, encrypted token storage in the database, and least-privilege OAuth scopes when requesting platform permissions. However, no method of electronic storage or transmission is 100% secure. Use Studio at your own risk.</p>
 
-  <h2>9. Changes to This Policy</h2>
-  <p>This Privacy Policy may be updated. Material changes will be reflected by the "Last updated" date above. Continued use after changes indicates acceptance.</p>
+  <h2>9. International Data Transfers</h2>
+  <p>Studio's infrastructure providers (Supabase, Vercel) operate data centres in multiple regions including the United States and the European Union. By using Studio you consent to your data being transferred to and processed in those regions in accordance with their respective privacy frameworks.</p>
 
-  <h2>10. Contact</h2>
-  <p>For privacy questions or requests, contact: <a href="mailto:wittyvisionary@yahoo.com">wittyvisionary@yahoo.com</a>.</p>
+  <h2>10. Changes to This Policy</h2>
+  <p>Studio may update this Privacy Policy from time to time. Material changes will be reflected by the "Last updated" date above. Continued use of Studio after changes indicates acceptance.</p>
 
-  <div class="note">
-    Studio is a personal, self-hosted tool. The Owner is the sole intended user. There is no marketing, advertising, or third-party data sharing of any kind.
+  <h2>11. Contact</h2>
+  <p>For privacy questions, data requests, or concerns about Studio, contact: <a href="mailto:wittyvisionary@yahoo.com">wittyvisionary@yahoo.com</a>.</p>
+
+  <div class="nav-links">
+    <a href="/">Studio</a>
+    <a href="/terms.html">Terms of Service</a>
+    <a href="mailto:wittyvisionary@yahoo.com">Contact</a>
   </div>
 </div>
 </body>
