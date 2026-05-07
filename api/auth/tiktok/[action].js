@@ -20,6 +20,7 @@ export default async function handler(req, res) {
     case 'login': return doLogin(req, res);
     case 'callback': return doCallback(req, res);
     case 'me': return doMe(req, res);
+    case 'stats': return doStats(req, res);
     case 'disconnect': return doDisconnect(req, res);
     default:
       res.statusCode = 404;
@@ -43,7 +44,7 @@ function doLogin(req, res) {
   url.searchParams.set('client_key', clientKey);
   url.searchParams.set('redirect_uri', REDIRECT_URI);
   url.searchParams.set('response_type', 'code');
-  url.searchParams.set('scope', 'user.info.basic,video.upload');
+  url.searchParams.set('scope', 'user.info.basic,user.info.stats,video.upload');
   url.searchParams.set('state', state);
 
   res.statusCode = 302;
@@ -178,6 +179,48 @@ async function doMe(req, res) {
   // Обратная совместимость: если был ?profile= — вернуть плоский объект (как было раньше).
   if (requested) return res.end(JSON.stringify(out[cleanProfile(requested)]));
   return res.end(JSON.stringify(out));
+}
+
+// Returns TT stats per profile: followers, likes, video_count, etc. (нужен user.info.stats scope)
+async function doStats(req, res) {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store');
+
+  const requested = req.query?.profile;
+  const profiles = requested ? [cleanProfile(requested)] : PROFILES;
+
+  const out = {};
+  for (const profile of profiles) {
+    const { token } = await getProfileToken(req, res, profile);
+    if (!token) { out[profile] = { connected: false }; continue; }
+    try {
+      const fields = 'open_id,display_name,avatar_url,follower_count,following_count,likes_count,video_count';
+      const resp = await fetch(
+        `https://open.tiktokapis.com/v2/user/info/?fields=${fields}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await resp.json();
+      if (data?.error?.code && data.error.code !== 'ok') {
+        out[profile] = { connected: false, error: data.error.message || data.error.code };
+        continue;
+      }
+      const u = data?.data?.user || {};
+      out[profile] = {
+        connected: true,
+        display_name: u.display_name,
+        avatar_url: u.avatar_url,
+        follower_count: u.follower_count,
+        following_count: u.following_count,
+        likes_count: u.likes_count,
+        video_count: u.video_count,
+      };
+    } catch (e) {
+      out[profile] = { connected: false, error: 'network: ' + (e.message || e) };
+    }
+  }
+
+  if (requested) return res.end(JSON.stringify({ ok: true, ...out[cleanProfile(requested)] }));
+  return res.end(JSON.stringify({ ok: true, ...out }));
 }
 
 async function doDisconnect(req, res) {

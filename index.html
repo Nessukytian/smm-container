@@ -702,6 +702,17 @@ img, svg, video { display: block; max-width: 100%; }
 .stat-spark { margin-top: var(--sp-2); height: 28px; }
 .stat-card[data-empty="true"] .stat-value { color: var(--text-3); font-weight: 500; }
 
+/* Per-platform stats cards */
+.platform-stats-list { display: flex; flex-direction: column; gap: 8px; }
+.platform-stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px 16px; }
+.platform-stat-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.platform-stat-name { font-size: 15px; font-weight: 600; }
+.platform-stat-sub { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+.platform-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.platform-stat-grid > div { padding: 4px 0; }
+.platform-stat-key { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; }
+.platform-stat-val { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; margin-top: 2px; }
+
 /* Stats help block */
 .stats-help { background: var(--gray-50); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px 16px; }
 .stats-help summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-2); }
@@ -1054,7 +1065,9 @@ img, svg, video { display: block; max-width: 100%; }
 
     <div class="divider"></div>
 
-    <div class="eyebrow" style="margin-bottom:12px">Топ за неделю</div>
+    <div id="platform-stats"></div>
+
+    <div class="eyebrow" style="margin:24px 0 12px">Топ видео — YouTube</div>
     <div id="top-videos"></div>
 
     <details class="stats-help" style="margin-top:32px">
@@ -1344,8 +1357,8 @@ function navigate(page){
   // На странице Профиль профиль-свитчер не нужен — там оба профиля показаны вместе
   const switcher = document.querySelector('.profile-switch');
   if (switcher) switcher.style.display = (page === 'profile') ? 'none' : 'inline-flex';
-  // Lazy-fetch YT stats при заходе на Стату
-  if (page === 'stats' && typeof syncYoutubeStats === 'function') syncYoutubeStats();
+  // Lazy-fetch all stats при заходе на Стату
+  if (page === 'stats' && typeof syncAllStats === 'function') syncAllStats();
   window.scrollTo(0, 0);
 }
 
@@ -2048,16 +2061,19 @@ async function syncTiktokStatus(){
     // Бек отдаёт оба профиля сразу: { creative: {...}, personal: {...} }
     const r = await fetch('/api/auth/tiktok/me', {cache:'no-store'});
     const data = await r.json();
+    let anyConn = false;
     ['creative','personal'].forEach(p => {
       if (!STATE.platforms[p]) STATE.platforms[p] = {};
       if (!PLATFORMS_BY_PROFILE[p].includes('tiktok')) return;
       const slot = data && data[p] ? data[p] : { connected: false };
       STATE.platforms[p].tiktok = !!slot.connected;
       STATE.platforms[p].tiktok_username = slot.username || slot.display_name || null;
+      if (slot.connected) anyConn = true;
     });
     save('platforms', STATE.platforms);
     renderPlatformsLists();
     renderPlatformGrid();
+    if (anyConn && typeof syncTiktokStats === 'function') syncTiktokStats();
   } catch(e){ /* offline / backend not deployed */ }
 }
 
@@ -2119,6 +2135,7 @@ async function syncMetaStatus(){
     save('platforms', STATE.platforms);
     renderPlatformsLists();
     renderPlatformGrid();
+    if (connected && typeof syncMetaStats === 'function') syncMetaStats();
   } catch(e){ /* offline / backend not deployed */ }
 }
 
@@ -2163,8 +2180,8 @@ function handleOAuthReturn(){
 }
 
 /* ============ STATS ============ */
-// Кеш статов чтобы не дёргать YT API на каждый ререндер.
-const STATS_STATE = { youtube: null, lastFetch: 0 };
+// Кеш статов — все три платформы. 60-сек cache.
+const STATS_STATE = { youtube: null, tiktok: null, meta: null, lastFetch: { youtube:0, tiktok:0, meta:0 } };
 
 function fmtNum(n){
   if (n == null || isNaN(n)) return '—';
@@ -2178,34 +2195,60 @@ function renderStatsCards(){
   const el = document.getElementById('stats-grid');
   if (!el) return;
   const yt = STATS_STATE.youtube;
-  const ytConn = STATE.platforms?.creative?.youtube;
+  const tt = STATS_STATE.tiktok;
+  const meta = STATS_STATE.meta;
+  const profile = STATE.profile; // creative or personal
 
-  // Если YT подключён и есть данные — рисуем по нему. Иначе — пустое.
-  let cards;
-  if (yt && yt.ok){
-    const ch = yt.channel || {};
-    const totalEngagement = (yt.top_videos || []).reduce((acc, v) => acc + v.likes + v.comments, 0);
-    const totalViews = (yt.top_videos || []).reduce((acc, v) => acc + v.views, 0);
-    const eng = totalViews > 0 ? ((totalEngagement / totalViews) * 100).toFixed(1) : null;
-    cards = [
-      { eyebrow: 'Подписчиĸи YT',   value: fmtNum(ch.subscriber_count) },
-      { eyebrow: 'Все просмотры',   value: fmtNum(ch.view_count) },
-      { eyebrow: 'Видео на ĸанале', value: fmtNum(ch.video_count) },
-      { eyebrow: 'Engagement топ-10', value: eng != null ? eng + '%' : '—' },
-    ];
-  } else {
-    cards = [
-      { eyebrow: 'Подписчики',   value: '—' },
-      { eyebrow: 'Просмотры',    value: '—' },
-      { eyebrow: 'Видео',        value: '—' },
-      { eyebrow: 'Engagement',   value: '—' },
-    ];
+  // Суммируем подписчиĸов и видео по всем платформам аĸтивного профиля.
+  let totalFollowers = 0, totalVideos = 0, totalLikes = 0, anyData = false;
+  const breakdown = []; // ['YT 1.2K', 'IG 5.4K', ...]
+
+  if (yt?.ok){
+    totalFollowers += yt.channel?.subscriber_count || 0;
+    totalVideos += yt.channel?.video_count || 0;
+    if (yt.channel?.subscriber_count) breakdown.push(`YT ${fmtNum(yt.channel.subscriber_count)}`);
+    anyData = true;
   }
+  if (tt?.[profile]?.connected){
+    const t = tt[profile];
+    totalFollowers += t.follower_count || 0;
+    totalVideos += t.video_count || 0;
+    totalLikes += t.likes_count || 0;
+    if (t.follower_count) breakdown.push(`TT ${fmtNum(t.follower_count)}`);
+    anyData = true;
+  }
+  if (meta?.ok){
+    // IG для аĸтивного профиля — ищем по PROFILE_TO_IG_USERNAME
+    const wantedUsername = (typeof PROFILE_TO_IG_USERNAME === 'object' ? PROFILE_TO_IG_USERNAME[profile] : null);
+    const myPage = (meta.pages || []).find(p => p.instagram?.username === wantedUsername);
+    const ig = myPage?.instagram;
+    if (ig){
+      totalFollowers += ig.followers_count || 0;
+      totalVideos += ig.media_count || 0;
+      if (ig.followers_count) breakdown.push(`IG ${fmtNum(ig.followers_count)}`);
+      anyData = true;
+    }
+    if (myPage && (myPage.fan_count || myPage.followers_count)){
+      const fb = myPage.followers_count || myPage.fan_count;
+      totalFollowers += fb;
+      breakdown.push(`FB ${fmtNum(fb)}`);
+      anyData = true;
+    }
+  }
+
+  // 4 карточки: подписчики (всего), посты/видео (всего), TT-лайки, Breakdown
+  const cards = [
+    { eyebrow: 'Подписчиĸи',  value: anyData ? fmtNum(totalFollowers) : '—', delta: 'всё вместе' },
+    { eyebrow: 'Постов / видео', value: anyData ? fmtNum(totalVideos) : '—', delta: 'всё вместе' },
+    { eyebrow: 'Лайĸов TT',   value: tt?.[profile]?.connected ? fmtNum(tt[profile].likes_count) : '—', delta: 'все за всё время' },
+    { eyebrow: 'По платформам', value: breakdown.length ? breakdown.slice(0,3).join(' · ') : '—', delta: 'breakdown', isBreakdown: true },
+  ];
+
   el.innerHTML = cards.map(c => `
     <div class="stat-card" data-empty="${c.value === '—' ? 'true' : 'false'}">
       <div class="stat-eyebrow">${c.eyebrow}</div>
-      <div class="stat-value">${c.value}</div>
-      <div class="stat-delta" style="color:var(--text-3)">${c.value === '—' ? (ytConn ? 'грузится...' : 'YT не подĸлючён') : 'YouTube'}</div>
+      <div class="stat-value" style="${c.isBreakdown ? 'font-size:14px;font-weight:500;line-height:1.4' : ''}">${escapeHtml(c.value)}</div>
+      <div class="stat-delta" style="color:var(--text-3)">${c.delta}</div>
     </div>
   `).join('');
 }
@@ -2262,16 +2305,129 @@ function renderTopVideos(){
 
 async function syncYoutubeStats(){
   if (!STATE.platforms?.creative?.youtube) return;
-  // Кешируем 60 сек — лишние API вызовы не нужны.
-  if (STATS_STATE.youtube && (Date.now() - STATS_STATE.lastFetch) < 60_000) return;
+  if (STATS_STATE.youtube && (Date.now() - STATS_STATE.lastFetch.youtube) < 60_000) return;
   try {
     const r = await fetch('/api/auth/youtube/stats', { cache: 'no-store' });
-    const data = await r.json();
-    STATS_STATE.youtube = data;
-    STATS_STATE.lastFetch = Date.now();
-    renderStatsCards();
-    renderTopVideos();
+    STATS_STATE.youtube = await r.json();
+    STATS_STATE.lastFetch.youtube = Date.now();
+    renderStatsCards(); renderTopVideos(); renderPlatformStats();
   } catch(e){ /* offline */ }
+}
+
+async function syncTiktokStats(){
+  // Хоть один профиль должен быть подключён.
+  const anyConn = STATE.platforms?.creative?.tiktok || STATE.platforms?.personal?.tiktok;
+  if (!anyConn) return;
+  if (STATS_STATE.tiktok && (Date.now() - STATS_STATE.lastFetch.tiktok) < 60_000) return;
+  try {
+    const r = await fetch('/api/auth/tiktok/stats', { cache: 'no-store' });
+    STATS_STATE.tiktok = await r.json();
+    STATS_STATE.lastFetch.tiktok = Date.now();
+    renderStatsCards(); renderPlatformStats();
+  } catch(e){ /* offline */ }
+}
+
+async function syncMetaStats(){
+  if (!(STATE.platforms?.creative?.instagram || STATE.platforms?.creative?.facebook
+        || STATE.platforms?.personal?.instagram)) return;
+  if (STATS_STATE.meta && (Date.now() - STATS_STATE.lastFetch.meta) < 60_000) return;
+  try {
+    const r = await fetch('/api/auth/meta/stats', { cache: 'no-store' });
+    STATS_STATE.meta = await r.json();
+    STATS_STATE.lastFetch.meta = Date.now();
+    renderStatsCards(); renderPlatformStats();
+  } catch(e){ /* offline */ }
+}
+
+function syncAllStats(){ syncYoutubeStats(); syncTiktokStats(); syncMetaStats(); }
+
+// Секция «По платформам» — список карточек с per-platform метриĸами.
+function renderPlatformStats(){
+  const el = document.getElementById('platform-stats');
+  if (!el) return;
+  const profile = STATE.profile;
+  const blocks = [];
+
+  // YouTube — общий по аĸĸаунту
+  if (STATS_STATE.youtube?.ok && STATE.platforms?.creative?.youtube){
+    const ch = STATS_STATE.youtube.channel || {};
+    blocks.push({
+      icon: iconFor('youtube'),
+      name: 'YouTube',
+      sub: ch.title || '',
+      metrics: [
+        ['Подписчиĸи', fmtNum(ch.subscriber_count)],
+        ['Просмотры',  fmtNum(ch.view_count)],
+        ['Видео',      fmtNum(ch.video_count)],
+      ],
+    });
+  }
+
+  // TikTok — для аĸтивного профиля
+  const tt = STATS_STATE.tiktok?.[profile];
+  if (tt?.connected && STATE.platforms?.[profile]?.tiktok){
+    blocks.push({
+      icon: iconFor('tiktok'),
+      name: 'TikTok',
+      sub: tt.display_name ? '@' + (STATE.platforms[profile].tiktok_username || tt.display_name) : '',
+      metrics: [
+        ['Подписчиĸи', fmtNum(tt.follower_count)],
+        ['Лайĸов',     fmtNum(tt.likes_count)],
+        ['Видео',      fmtNum(tt.video_count)],
+      ],
+    });
+  }
+
+  // Instagram + Facebook (через Meta) — для аĸтивного профиля
+  if (STATS_STATE.meta?.ok){
+    const want = (typeof PROFILE_TO_IG_USERNAME === 'object' ? PROFILE_TO_IG_USERNAME[profile] : null);
+    const page = (STATS_STATE.meta.pages || []).find(p => p.instagram?.username === want);
+    if (page?.instagram && STATE.platforms?.[profile]?.instagram){
+      const ig = page.instagram;
+      blocks.push({
+        icon: iconFor('instagram'),
+        name: 'Instagram',
+        sub: ig.username ? '@' + ig.username : '',
+        metrics: [
+          ['Подписчиĸи', fmtNum(ig.followers_count)],
+          ['Постов',     fmtNum(ig.media_count)],
+        ],
+      });
+    }
+    if (page && (page.fan_count != null || page.followers_count != null) && STATE.platforms?.[profile]?.facebook){
+      blocks.push({
+        icon: iconFor('facebook'),
+        name: 'Facebook',
+        sub: page.name || '',
+        metrics: [
+          ['Фолловеры', fmtNum(page.followers_count || page.fan_count)],
+        ],
+      });
+    }
+  }
+
+  if (blocks.length === 0){
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = `
+    <div class="eyebrow" style="margin:24px 0 12px">По платформам</div>
+    <div class="platform-stats-list">
+      ${blocks.map(b => `
+        <div class="platform-stat-card">
+          <div class="platform-stat-head">
+            <div class="row-icon">${b.icon}</div>
+            <div style="min-width:0;flex:1">
+              <div class="platform-stat-name">${escapeHtml(b.name)}</div>
+              <div class="platform-stat-sub">${escapeHtml(b.sub)}</div>
+            </div>
+          </div>
+          <div class="platform-stat-grid">
+            ${b.metrics.map(([k,v]) => `<div><div class="platform-stat-key">${k}</div><div class="platform-stat-val">${escapeHtml(v)}</div></div>`).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
 }
 
 function renderStatsFilter(){

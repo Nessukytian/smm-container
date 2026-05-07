@@ -14,6 +14,7 @@ export default async function handler(req, res) {
     case 'login': return doLogin(req, res);
     case 'callback': return doCallback(req, res);
     case 'me': return doMe(req, res);
+    case 'stats': return doStats(req, res);
     case 'disconnect': return doDisconnect(req, res);
     default:
       res.statusCode = 404;
@@ -203,6 +204,89 @@ async function doMe(req, res) {
     }));
   } catch (e) {
     return res.end(JSON.stringify({ connected: false, error: 'network: ' + (e.message || e) }));
+  }
+}
+
+// Returns IG + FB stats per page/account.
+async function doStats(req, res) {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store');
+
+  const cookies = parseCookies(req);
+  let token = cookies.meta_access_token;
+  if (!token) {
+    const userId = await getUserId(req);
+    if (userId) {
+      const dbToken = await getToken(userId, 'meta');
+      if (dbToken) {
+        token = dbToken.access_token;
+        setCookie(res, 'meta_access_token', token, { maxAge: 60 * 60 * 24 * 30 });
+      }
+    }
+  }
+  if (!token) {
+    res.statusCode = 401;
+    return res.end(JSON.stringify({ ok: false, error: 'not connected' }));
+  }
+
+  try {
+    const pages = await getAccessiblePages(token);
+    if (!pages.length) {
+      return res.end(JSON.stringify({ ok: true, pages: [], ig_accounts: [] }));
+    }
+
+    // Параллельно дёргаем stats для каждой Page и связанного IG-аккаунта.
+    const results = await Promise.all(pages.map(async (p) => {
+      const pageToken = p.page_access_token || token;
+      const out = { id: p.id, name: p.name };
+      try {
+        const fbUrl = new URL(`https://graph.facebook.com/${META_VERSION}/${p.id}`);
+        fbUrl.searchParams.set('fields', 'name,fan_count,followers_count,picture');
+        fbUrl.searchParams.set('access_token', pageToken);
+        const r = await fetch(fbUrl.toString());
+        const d = await r.json();
+        if (!d.error) {
+          out.fan_count = d.fan_count;
+          out.followers_count = d.followers_count;
+          out.picture = d.picture?.data?.url;
+        } else {
+          out.fb_error = d.error.message || d.error.code;
+        }
+      } catch (e) { out.fb_error = e.message; }
+
+      if (p.instagram?.id){
+        try {
+          const igUrl = new URL(`https://graph.facebook.com/${META_VERSION}/${p.instagram.id}`);
+          igUrl.searchParams.set('fields', 'username,name,followers_count,follows_count,media_count,profile_picture_url');
+          igUrl.searchParams.set('access_token', pageToken);
+          const r = await fetch(igUrl.toString());
+          const d = await r.json();
+          if (!d.error) {
+            out.instagram = {
+              id: p.instagram.id,
+              username: d.username,
+              name: d.name,
+              followers_count: d.followers_count,
+              follows_count: d.follows_count,
+              media_count: d.media_count,
+              profile_picture_url: d.profile_picture_url,
+            };
+          } else {
+            out.ig_error = d.error.message || d.error.code;
+          }
+        } catch (e) { out.ig_error = e.message; }
+      }
+      return out;
+    }));
+
+    return res.end(JSON.stringify({
+      ok: true,
+      pages: results,
+      ig_accounts: results.filter(r => r.instagram).map(r => r.instagram),
+    }));
+  } catch (e) {
+    res.statusCode = 502;
+    return res.end(JSON.stringify({ ok: false, error: 'network: ' + (e.message || e) }));
   }
 }
 
